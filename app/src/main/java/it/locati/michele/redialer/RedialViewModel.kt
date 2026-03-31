@@ -23,7 +23,7 @@ data class RedialUiState(
 
 class RedialViewModel : ViewModel() {
     companion object {
-        private const val REDIAL_DELAY_MS = 3000L
+        private const val REDIAL_DELAY_MS = 5000L
     }
 
     private val _uiState = MutableStateFlow(RedialUiState())
