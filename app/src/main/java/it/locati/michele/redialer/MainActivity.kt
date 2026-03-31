@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.ContactPage
@@ -38,6 +39,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -49,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -73,7 +76,7 @@ class MainActivity : ComponentActivity() {
         if (isGranted) {
             pickContactLauncher.launch(null)
         } else {
-            Toast.makeText(this, "Permission required to select contacts", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.contacts_permission_denied), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -87,7 +90,7 @@ class MainActivity : ComponentActivity() {
             registerCallStateListener()
             viewModel.startRedialing()
         } else {
-            Toast.makeText(this, "Permissions required to make calls and monitor line status", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.phone_permission_denied), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -102,6 +105,7 @@ class MainActivity : ComponentActivity() {
                 
                 RedialerScreen(
                     uiState = uiState,
+                    onPhoneNumberChange = { viewModel.onPhoneNumberChange(it) },
                     onPickContact = { attemptPickContact() },
                     onStartRedial = { attemptStartRedial() },
                     onStopRedial = { viewModel.stopRedialing() }
@@ -223,7 +227,7 @@ class MainActivity : ComponentActivity() {
         if (uri == null) return
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "READ_CONTACTS permission required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.contacts_permission_denied), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -269,6 +273,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun RedialerScreen(
     uiState: RedialUiState,
+    onPhoneNumberChange: (String) -> Unit,
     onPickContact: () -> Unit,
     onStartRedial: () -> Unit,
     onStopRedial: () -> Unit
@@ -308,22 +313,33 @@ fun RedialerScreen(
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        uiState.phoneNumber?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        } ?: Text(
-                            text = "No phone number found",
-                            color = MaterialTheme.colorScheme.error
-                        )
                     } else {
                         Text(
-                            text = "No contact selected",
+                            text = stringResource(R.string.manual_number_label),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
                 }
+            }
+
+            OutlinedTextField(
+                value = uiState.phoneNumber ?: "",
+                onValueChange = onPhoneNumberChange,
+                label = { Text(stringResource(R.string.manual_number_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                singleLine = true,
+                enabled = !uiState.isRedialing
+            )
+
+            Button(
+                onClick = onPickContact,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isRedialing
+            ) {
+                Icon(Icons.Rounded.ContactPage, contentDescription = null)
+                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                Text(stringResource(R.string.select_contact))
             }
 
             Text(
@@ -332,14 +348,6 @@ fun RedialerScreen(
                 color = if (uiState.isRedialing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
             )
 
-            Button(
-                onClick = onPickContact,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isRedialing
-            ) {
-                Text(stringResource(R.string.select_contact))
-            }
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -347,7 +355,7 @@ fun RedialerScreen(
                 Button(
                     onClick = onStartRedial,
                     modifier = Modifier.weight(1f),
-                    enabled = !uiState.isRedialing && uiState.phoneNumber != null,
+                    enabled = !uiState.isRedialing && !uiState.phoneNumber.isNullOrBlank(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
@@ -385,6 +393,7 @@ fun RedialerScreenPreview() {
                 isRedialing = false,
                 statusMessageResId = R.string.idle_status
             ),
+            onPhoneNumberChange = {},
             onPickContact = {},
             onStartRedial = {},
             onStopRedial = {}

@@ -46,8 +46,19 @@ class RedialViewModel : ViewModel() {
         }
     }
 
+    fun onPhoneNumberChange(newNumber: String) {
+        _uiState.update {
+            it.copy(
+                phoneNumber = newNumber,
+                contactName = null,
+                statusMessageResId = R.string.idle_status
+            )
+        }
+    }
+
     fun startRedialing() {
-        val number = uiState.value.phoneNumber ?: return
+        val number = uiState.value.phoneNumber
+        if (number.isNullOrBlank()) return
         if (uiState.value.isRedialing) return
 
         _uiState.update { it.copy(isRedialing = true) }

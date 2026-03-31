@@ -7,4 +7,7 @@
     <string name="calling_status">Calling...</string>
     <string name="busy_status">Line busy, retrying...</string>
     <string name="idle_status">Ready</string>
+    <string name="manual_number_label">Phone Number</string>
+    <string name="contacts_permission_denied">Contact permission denied</string>
+    <string name="phone_permission_denied">Phone permissions denied</string>
 </resources>
