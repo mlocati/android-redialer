@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.ContactPage
-import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,7 +42,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,12 +49,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import it.locati.michele.redialer.ui.theme.RedialerTheme
 
 private const val TAG = "RedialerMainActivity"
@@ -72,6 +67,30 @@ class MainActivity : ComponentActivity() {
         handleContactSelection(contactUri)
     }
 
+    private val requestContactPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            pickContactLauncher.launch(null)
+        } else {
+            Toast.makeText(this, "Permission required to select contacts", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val requestPhonePermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val callPhoneGranted = permissions[Manifest.permission.CALL_PHONE] ?: false
+        val readPhoneStateGranted = permissions[Manifest.permission.READ_PHONE_STATE] ?: false
+        
+        if (callPhoneGranted && readPhoneStateGranted) {
+            registerCallStateListener()
+            viewModel.startRedialing()
+        } else {
+            Toast.makeText(this, "Permissions required to make calls and monitor line status", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -81,21 +100,12 @@ class MainActivity : ComponentActivity() {
             RedialerTheme {
                 val uiState by viewModel.uiState.collectAsState()
                 
-                PermissionWrapper(
-                    onPermissionsGranted = {
-                        registerCallStateListener()
-                    },
-                    onPermissionsRevoked = {
-                        unregisterCallStateListener()
-                    }
-                ) {
-                    RedialerScreen(
-                        uiState = uiState,
-                        onPickContact = { pickContactLauncher.launch(null) },
-                        onStartRedial = { viewModel.startRedialing() },
-                        onStopRedial = { viewModel.stopRedialing() }
-                    )
-                }
+                RedialerScreen(
+                    uiState = uiState,
+                    onPickContact = { attemptPickContact() },
+                    onStartRedial = { attemptStartRedial() },
+                    onStopRedial = { viewModel.stopRedialing() }
+                )
 
                 LaunchedEffect(Unit) {
                     viewModel.callRequest.collect { number ->
@@ -109,6 +119,28 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterCallStateListener()
+    }
+
+    private fun attemptPickContact() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            pickContactLauncher.launch(null)
+        } else {
+            requestContactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+        }
+    }
+
+    private fun attemptStartRedial() {
+        val callPhoneGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
+        val readPhoneStateGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        
+        if (callPhoneGranted && readPhoneStateGranted) {
+            registerCallStateListener()
+            viewModel.startRedialing()
+        } else {
+            requestPhonePermissionsLauncher.launch(
+                arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE)
+            )
+        }
     }
 
     private fun registerCallStateListener() {
@@ -229,76 +261,6 @@ class MainActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error reading contact", e)
-        }
-    }
-}
-
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun PermissionWrapper(
-    onPermissionsGranted: () -> Unit,
-    onPermissionsRevoked: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    val permissionState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            Manifest.permission.CALL_PHONE,
-            Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.READ_CONTACTS
-        )
-    )
-
-    if (permissionState.allPermissionsGranted) {
-        DisposableEffect(Unit) {
-            onPermissionsGranted()
-            onDispose {
-                onPermissionsRevoked()
-            }
-        }
-        content()
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Security,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Permissions Required",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Redialer needs permissions to make calls, monitor line status, and select contacts.",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = { permissionState.launchMultiplePermissionRequest() },
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                Text("Grant Permissions")
-            }
-            
-            if (permissionState.shouldShowRationale) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "These permissions are essential for the app to function properly.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    textAlign = TextAlign.Center
-                )
-            }
         }
     }
 }
