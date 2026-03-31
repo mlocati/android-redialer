@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Redialer</string>
+    <string name="select_contact">Select Contact</string>
+    <string name="start_redialing">Start Redialing</string>
+    <string name="stop">Stop</string>
+    <string name="contact_selected">Contact Selected: %s</string>
+    <string name="calling_status">Calling...</string>
+    <string name="busy_status">Line busy, retrying...</string>
+    <string name="idle_status">Ready</string>
+</resources>

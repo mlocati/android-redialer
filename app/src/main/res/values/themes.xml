@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.Redialer" parent="Theme.MaterialComponents.Light" />
+</resources>

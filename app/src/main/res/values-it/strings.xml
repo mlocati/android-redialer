@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Redialer</string>
+    <string name="select_contact">Seleziona Contatto</string>
+    <string name="start_redialing">Avvia Ricomposizione</string>
+    <string name="stop">Ferma</string>
+    <string name="contact_selected">Contatto Selezionato: %s</string>
+    <string name="calling_status">Chiamata in corso…</string>
+    <string name="busy_status">Linea occupata, riprovo…</string>
+    <string name="idle_status">Pronto</string>
+</resources>
