@@ -22,6 +22,10 @@ data class RedialUiState(
 )
 
 class RedialViewModel : ViewModel() {
+    companion object {
+        private const val REDIAL_DELAY_MS = 3000L
+    }
+
     private val _uiState = MutableStateFlow(RedialUiState())
     val uiState: StateFlow<RedialUiState> = _uiState.asStateFlow()
 
@@ -59,7 +63,7 @@ class RedialViewModel : ViewModel() {
 
                     if (uiState.value.isRedialing) {
                         _uiState.update { it.copy(statusMessageResId = R.string.busy_status) }
-                        delay(2000) // Delay before next redial attempt
+                        delay(REDIAL_DELAY_MS) // Delay before next redial attempt
                     }
                 }
             } finally {
