@@ -18,13 +18,11 @@ data class RedialUiState(
     val contactName: String? = null,
     val phoneNumber: String? = null,
     val isRedialing: Boolean = false,
-    val statusMessageResId: Int = R.string.idle_status
+    val statusMessageResId: Int = R.string.idle_status,
+    val delaySeconds: Int = 5
 )
 
 class RedialViewModel : ViewModel() {
-    companion object {
-        private const val REDIAL_DELAY_MS = 5000L
-    }
 
     private val _uiState = MutableStateFlow(RedialUiState())
     val uiState: StateFlow<RedialUiState> = _uiState.asStateFlow()
@@ -56,6 +54,12 @@ class RedialViewModel : ViewModel() {
         }
     }
 
+    fun onDelayChange(seconds: Int) {
+        _uiState.update {
+            it.copy(delaySeconds = seconds.coerceAtLeast(5))
+        }
+    }
+
     fun startRedialing() {
         val number = uiState.value.phoneNumber
         if (number.isNullOrBlank()) return
@@ -74,7 +78,7 @@ class RedialViewModel : ViewModel() {
 
                     if (uiState.value.isRedialing) {
                         _uiState.update { it.copy(statusMessageResId = R.string.busy_status) }
-                        delay(REDIAL_DELAY_MS) // Delay before next redial attempt
+                        delay(uiState.value.delaySeconds * 1000L) // Dynamic delay
                     }
                 }
             } finally {

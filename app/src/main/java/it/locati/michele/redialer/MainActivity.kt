@@ -106,6 +106,10 @@ class MainActivity : ComponentActivity() {
                 RedialerScreen(
                     uiState = uiState,
                     onPhoneNumberChange = { viewModel.onPhoneNumberChange(it) },
+                    onDelayChange = { 
+                        val seconds = it.toIntOrNull() ?: 5
+                        viewModel.onDelayChange(seconds)
+                    },
                     onPickContact = { attemptPickContact() },
                     onStartRedial = { attemptStartRedial() },
                     onStopRedial = { viewModel.stopRedialing() }
@@ -274,6 +278,7 @@ class MainActivity : ComponentActivity() {
 fun RedialerScreen(
     uiState: RedialUiState,
     onPhoneNumberChange: (String) -> Unit,
+    onDelayChange: (String) -> Unit,
     onPickContact: () -> Unit,
     onStartRedial: () -> Unit,
     onStopRedial: () -> Unit
@@ -328,6 +333,16 @@ fun RedialerScreen(
                 label = { Text(stringResource(R.string.manual_number_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                singleLine = true,
+                enabled = !uiState.isRedialing
+            )
+
+            OutlinedTextField(
+                value = uiState.delaySeconds.toString(),
+                onValueChange = onDelayChange,
+                label = { Text(stringResource(R.string.delay_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 enabled = !uiState.isRedialing
             )
@@ -391,9 +406,11 @@ fun RedialerScreenPreview() {
                 contactName = "John Doe",
                 phoneNumber = "+123456789",
                 isRedialing = false,
-                statusMessageResId = R.string.idle_status
+                statusMessageResId = R.string.idle_status,
+                delaySeconds = 5
             ),
             onPhoneNumberChange = {},
+            onDelayChange = {},
             onPickContact = {},
             onStartRedial = {},
             onStopRedial = {}
