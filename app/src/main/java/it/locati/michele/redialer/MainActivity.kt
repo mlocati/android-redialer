@@ -157,6 +157,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun registerCallStateListener() {
         if (telephonyCallback != null) return // Already registered
 
@@ -183,7 +184,6 @@ class MainActivity : ComponentActivity() {
                         viewModel.onCallStateChanged(state)
                     }
                 }
-                @Suppress("DEPRECATION")
                 tm.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
                 telephonyCallback = listener
             }
@@ -194,6 +194,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun unregisterCallStateListener() {
         val tm = telephonyManager ?: return
         val callback = telephonyCallback ?: return
@@ -205,7 +206,6 @@ class MainActivity : ComponentActivity() {
                 }
             } else {
                 if (callback is PhoneStateListener) {
-                    @Suppress("DEPRECATION")
                     tm.listen(callback, PhoneStateListener.LISTEN_NONE)
                 }
             }
