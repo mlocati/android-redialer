@@ -13,6 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
-
-# Kotlin compiler sessions
 .kotlin/
+/app/**/*.aab
