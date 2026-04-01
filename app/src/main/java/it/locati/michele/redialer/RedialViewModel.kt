@@ -1,7 +1,8 @@
 package it.locati.michele.redialer
 
+import android.app.Application
 import android.telephony.TelephonyManager
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -19,12 +20,18 @@ data class RedialUiState(
     val phoneNumber: String? = null,
     val isRedialing: Boolean = false,
     val statusMessageResId: Int = R.string.idle_status,
-    val delaySeconds: Int = 5,
-    val stopThresholdSeconds: Int = 10
+    val delaySeconds: Int = RedialViewModel.MIN_DELAY_SECONDS,
+    val stopThresholdSeconds: Int = RedialViewModel.MIN_STOP_THRESHOLD_SECONDS
 )
 
-class RedialViewModel : ViewModel() {
+class RedialViewModel(application: Application) : AndroidViewModel(application) {
 
+    companion object {
+        const val MIN_DELAY_SECONDS = 5
+        const val MIN_STOP_THRESHOLD_SECONDS = 1
+    }
+
+    private val prefs = RedialPreferences(application)
     private val _uiState = MutableStateFlow(RedialUiState())
     val uiState: StateFlow<RedialUiState> = _uiState.asStateFlow()
 
@@ -35,6 +42,19 @@ class RedialViewModel : ViewModel() {
     private val callEndedChannel = Channel<Unit>(Channel.CONFLATED)
     private var lastState = TelephonyManager.CALL_STATE_IDLE
     private var callStartTime: Long = 0
+
+    init {
+        viewModelScope.launch {
+            prefs.delaySeconds.collect { seconds ->
+                _uiState.update { it.copy(delaySeconds = seconds.coerceAtLeast(MIN_DELAY_SECONDS)) }
+            }
+        }
+        viewModelScope.launch {
+            prefs.stopThresholdSeconds.collect { seconds ->
+                _uiState.update { it.copy(stopThresholdSeconds = seconds.coerceAtLeast(MIN_STOP_THRESHOLD_SECONDS)) }
+            }
+        }
+    }
 
     fun updateContact(name: String?, number: String?) {
         _uiState.update {
@@ -57,14 +77,16 @@ class RedialViewModel : ViewModel() {
     }
 
     fun onDelayChange(seconds: Int) {
-        _uiState.update {
-            it.copy(delaySeconds = seconds.coerceAtLeast(5))
+        val safeSeconds = seconds.coerceAtLeast(MIN_DELAY_SECONDS)
+        viewModelScope.launch {
+            prefs.saveDelaySeconds(safeSeconds)
         }
     }
 
     fun onStopThresholdChange(seconds: Int) {
-        _uiState.update {
-            it.copy(stopThresholdSeconds = seconds.coerceAtLeast(1))
+        val safeSeconds = seconds.coerceAtLeast(MIN_STOP_THRESHOLD_SECONDS)
+        viewModelScope.launch {
+            prefs.saveStopThresholdSeconds(safeSeconds)
         }
     }
 
