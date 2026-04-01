@@ -16,7 +16,7 @@ android {
         applicationId = "it.locati.michele.redialer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
+        versionCode = 7
         versionName = "1.2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -33,7 +33,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = if (System.getenv("KEYSTORE_PASSWORD") != null) {
                 signingConfigs.getByName("release")
             } else {
@@ -45,6 +46,27 @@ android {
             )
         }
     }
+
+    @Suppress("UnstableApiUsage")
+    bundle {
+        language {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
+        }
+    }
+
+    @Suppress("UnstableApiUsage")
+    buildTypes.getByName("release") {
+        ndk {
+            debugSymbolLevel = "FULL"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
