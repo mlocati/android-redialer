@@ -21,10 +21,14 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: wrapper
 
       - name: Build with Gradle
-        run: ./gradlew assembleDebug assembleRelease
+        run: ./gradlew assembleDebug assembleRelease --build-cache
 
       - name: Upload APKs
         uses: actions/upload-artifact@v6
