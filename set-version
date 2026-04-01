@@ -1,0 +1,39 @@
+#!/bin/bash
+set -o errexit
+set -o nounset
+
+# Get the directory where the script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if [ -z "${1:-}" ]; then
+    echo "Usage: $0 <major>.<minor>.<patch>"
+    exit 1
+fi
+
+VERSION=$1
+FILE="app/build.gradle.kts"
+
+if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Error: Version must be in the format major.minor.patch (e.g., 1.2.3)"
+    exit 1
+fi
+
+echo "Reading $FILE"
+if [ ! -f "$FILE" ]; then
+    echo "Error: Could not find $FILE in $SCRIPT_DIR"
+    exit 1
+fi
+VCODE=$(grep "versionCode =" $FILE | grep -o "[0-9]\+")
+
+echo "Updating version"
+NEW_VCODE=$((VCODE + 1))
+sed -i "s/versionCode = $VCODE/versionCode = $NEW_VCODE/" "$FILE"
+sed -i "s/versionName = \".*\"/versionName = \"$VERSION\"/" "$FILE"
+
+echo "Committing changes and creating git tag"
+git add "$FILE"
+git commit -m "Version $VERSION"
+git tag "$VERSION"
+
+echo "Successfully updated to version $VERSION (versionCode $NEW_VCODE) and created git tag."

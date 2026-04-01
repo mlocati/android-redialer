@@ -24,14 +24,18 @@ An Android application designed to automatically redial phone numbers that are f
 
 ### Building
 
-1. Clone the repository:
+1. Clone the repository.
 2. Open the project in Android Studio.
 3. Sync Gradle and build the project.
 4. Run on your device.
 
-## CI/CD
+## CI/CD and Release Security
 
 The project includes [a GitHub Actions workflow](https://github.com/mlocati/android-redialer/actions/workflows/ci.yml) that automatically builds both Debug and Release versions of the APK on every push or pull request to the `main` branch.
+
+When a version tag (e.g., `1.2.0`) is pushed, the workflow automatically creates a GitHub Release and attaches the compiled APKs.
+
+**Release Immutability**: To ensure the integrity of the distributed binaries, this repository has "Release Immutability" enabled. This means that once a release is published by the automated CI/CD pipeline, its tags and associated assets (APKs) cannot be modified or replaced, guaranteeing that the files you download are exactly those produced by the verified build process.
 
 ## Technical Details
 
