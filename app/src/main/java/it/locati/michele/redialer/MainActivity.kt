@@ -28,7 +28,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.ContactPage
@@ -109,6 +111,10 @@ class MainActivity : ComponentActivity() {
                     onDelayChange = { 
                         val seconds = it.toIntOrNull() ?: 5
                         viewModel.onDelayChange(seconds)
+                    },
+                    onStopThresholdChange = {
+                        val seconds = it.toIntOrNull() ?: 10
+                        viewModel.onStopThresholdChange(seconds)
                     },
                     onPickContact = { attemptPickContact() },
                     onStartRedial = { attemptStartRedial() },
@@ -279,6 +285,7 @@ fun RedialerScreen(
     uiState: RedialUiState,
     onPhoneNumberChange: (String) -> Unit,
     onDelayChange: (String) -> Unit,
+    onStopThresholdChange: (String) -> Unit,
     onPickContact: () -> Unit,
     onStartRedial: () -> Unit,
     onStopRedial: () -> Unit
@@ -294,7 +301,8 @@ fun RedialerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -341,6 +349,16 @@ fun RedialerScreen(
                 value = uiState.delaySeconds.toString(),
                 onValueChange = onDelayChange,
                 label = { Text(stringResource(R.string.delay_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                enabled = !uiState.isRedialing
+            )
+
+            OutlinedTextField(
+                value = uiState.stopThresholdSeconds.toString(),
+                onValueChange = onStopThresholdChange,
+                label = { Text(stringResource(R.string.stop_threshold_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
@@ -407,10 +425,12 @@ fun RedialerScreenPreview() {
                 phoneNumber = "+123456789",
                 isRedialing = false,
                 statusMessageResId = R.string.idle_status,
-                delaySeconds = 5
+                delaySeconds = 5,
+                stopThresholdSeconds = 10
             ),
             onPhoneNumberChange = {},
             onDelayChange = {},
+            onStopThresholdChange = {},
             onPickContact = {},
             onStartRedial = {},
             onStopRedial = {}

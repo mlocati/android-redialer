@@ -9,6 +9,7 @@
     <string name="idle_status">Ready</string>
     <string name="manual_number_label">Phone Number</string>
     <string name="delay_label">Delay between calls (seconds)</string>
+    <string name="stop_threshold_label">Stop if call lasts more than (seconds)</string>
     <string name="contacts_permission_denied">Contact permission denied</string>
     <string name="phone_permission_denied">Phone permissions denied</string>
 </resources>

@@ -19,7 +19,8 @@ data class RedialUiState(
     val phoneNumber: String? = null,
     val isRedialing: Boolean = false,
     val statusMessageResId: Int = R.string.idle_status,
-    val delaySeconds: Int = 5
+    val delaySeconds: Int = 5,
+    val stopThresholdSeconds: Int = 10
 )
 
 class RedialViewModel : ViewModel() {
@@ -33,6 +34,7 @@ class RedialViewModel : ViewModel() {
     private var redialJob: Job? = null
     private val callEndedChannel = Channel<Unit>(Channel.CONFLATED)
     private var lastState = TelephonyManager.CALL_STATE_IDLE
+    private var callStartTime: Long = 0
 
     fun updateContact(name: String?, number: String?) {
         _uiState.update {
@@ -57,6 +59,12 @@ class RedialViewModel : ViewModel() {
     fun onDelayChange(seconds: Int) {
         _uiState.update {
             it.copy(delaySeconds = seconds.coerceAtLeast(5))
+        }
+    }
+
+    fun onStopThresholdChange(seconds: Int) {
+        _uiState.update {
+            it.copy(stopThresholdSeconds = seconds.coerceAtLeast(1))
         }
     }
 
@@ -106,8 +114,16 @@ class RedialViewModel : ViewModel() {
     }
 
     fun onCallStateChanged(state: Int) {
+        if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
+            callStartTime = System.currentTimeMillis()
+        }
+
         // We look for a transition back to IDLE from any other state
         if (state == TelephonyManager.CALL_STATE_IDLE && lastState != TelephonyManager.CALL_STATE_IDLE) {
+            val duration = System.currentTimeMillis() - callStartTime
+            if (duration > uiState.value.stopThresholdSeconds * 1000L) {
+                stopRedialing()
+            }
             callEndedChannel.trySend(Unit)
         }
         lastState = state

@@ -1,14 +1,15 @@
 <resources>
     <string name="app_name">Redialer</string>
-    <string name="select_contact">Seleziona Contatto</string>
-    <string name="start_redialing">Avvia Ricomposizione</string>
+    <string name="select_contact">Seleziona contatto</string>
+    <string name="start_redialing">Avvia composizione</string>
     <string name="stop">Ferma</string>
-    <string name="contact_selected">Contatto Selezionato: %s</string>
-    <string name="calling_status">Chiamata in corso…</string>
-    <string name="busy_status">Linea occupata, riprovo…</string>
+    <string name="contact_selected">Contatto selezionato: %s</string>
+    <string name="calling_status">Chiamata in corso...</string>
+    <string name="busy_status">Occupato, riprovo...</string>
     <string name="idle_status">Pronto</string>
     <string name="manual_number_label">Numero di telefono</string>
-    <string name="delay_label">Attesa tra le chiamate (secondi)</string>
+    <string name="delay_label">Ritardo tra chiamate (secondi)</string>
+    <string name="stop_threshold_label">Ferma se la chiamata dura più di (secondi)</string>
     <string name="contacts_permission_denied">Permesso contatti negato</string>
     <string name="phone_permission_denied">Permessi telefonici negati</string>
 </resources>
