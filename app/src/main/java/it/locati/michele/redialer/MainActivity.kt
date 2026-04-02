@@ -20,6 +20,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +30,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -36,15 +39,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.ContactPage
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -116,7 +124,9 @@ class MainActivity : ComponentActivity() {
                     onStopThresholdBlur = { viewModel.onStopThresholdBlur() },
                     onPickContact = { attemptPickContact() },
                     onStartRedial = { attemptStartRedial() },
-                    onStopRedial = { viewModel.stopRedialing() }
+                    onStopRedial = { viewModel.stopRedialing() },
+                    onNumberChosen = { viewModel.onNumberChosen(it) },
+                    onDismissNumberSelection = { viewModel.dismissNumberSelection() }
                 )
 
                 LaunchedEffect(Unit) {
@@ -249,19 +259,40 @@ class MainActivity : ComponentActivity() {
                     val hasPhone = cursor.getInt(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0
 
                     if (hasPhone) {
+                        val numbers = mutableListOf<ContactNumber>()
                         val phoneCursor: Cursor? = contentResolver.query(
                             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                            null,
+                            arrayOf(
+                                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                                ContactsContract.CommonDataKinds.Phone.TYPE,
+                                ContactsContract.CommonDataKinds.Phone.LABEL,
+                                ContactsContract.CommonDataKinds.Phone.IS_PRIMARY
+                            ),
                             ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
                             arrayOf(id),
                             null
                         )
                         phoneCursor?.use { pCursor ->
-                            if (pCursor.moveToFirst()) {
-                                val number = pCursor.getString(pCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
-                                viewModel.updateContact(name, number)
+                            val numberIdx = pCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                            val typeIdx = pCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.TYPE)
+                            val labelIdx = pCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.LABEL)
+                            val primaryIdx = pCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.IS_PRIMARY)
+                            
+                            while (pCursor.moveToNext()) {
+                                val number = pCursor.getString(numberIdx)
+                                val type = pCursor.getInt(typeIdx)
+                                val label = pCursor.getString(labelIdx)
+                                val isPrimary = pCursor.getInt(primaryIdx) != 0
+                                
+                                val typeLabel = ContactsContract.CommonDataKinds.Phone.getTypeLabel(resources, type, label).toString()
+                                numbers.add(ContactNumber(number, typeLabel, isPrimary))
                             }
                         }
+                        
+                        // Sort numbers to put primary one first
+                        numbers.sortByDescending { it.isPrimary }
+                        
+                        viewModel.onContactSelected(name, numbers)
                     } else {
                         viewModel.updateContact(name, null)
                         Toast.makeText(this, "Contact has no phone number", Toast.LENGTH_SHORT).show()
@@ -285,7 +316,9 @@ fun RedialerScreen(
     onStopThresholdBlur: () -> Unit,
     onPickContact: () -> Unit,
     onStartRedial: () -> Unit,
-    onStopRedial: () -> Unit
+    onStopRedial: () -> Unit,
+    onNumberChosen: (String) -> Unit,
+    onDismissNumberSelection: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -422,6 +455,69 @@ fun RedialerScreen(
             }
         }
     }
+
+    if (uiState.numbersToSelect != null) {
+        NumberSelectionDialog(
+            contactName = uiState.contactName ?: "",
+            numbers = uiState.numbersToSelect,
+            onNumberChosen = onNumberChosen,
+            onDismiss = onDismissNumberSelection
+        )
+    }
+}
+
+@Composable
+fun NumberSelectionDialog(
+    contactName: String,
+    numbers: List<ContactNumber>,
+    onNumberChosen: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = contactName) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.select_number_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(numbers) { contactNumber ->
+                        ListItem(
+                            headlineContent = { Text(contactNumber.number) },
+                            supportingContent = { Text(contactNumber.typeLabel) },
+                            leadingContent = {
+                                RadioButton(
+                                    selected = contactNumber.isPrimary,
+                                    onClick = null
+                                )
+                            },
+                            trailingContent = {
+                                if (contactNumber.isPrimary) {
+                                    Text(
+                                        text = stringResource(R.string.default_number_label),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onNumberChosen(contactNumber.number) }
+                        )
+                        HorizontalDivider()
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
 }
 
 @Preview(showBackground = true)
@@ -444,7 +540,9 @@ fun RedialerScreenPreview() {
             onStopThresholdBlur = {},
             onPickContact = {},
             onStartRedial = {},
-            onStopRedial = {}
+            onStopRedial = {},
+            onNumberChosen = {},
+            onDismissNumberSelection = {}
         )
     }
 }

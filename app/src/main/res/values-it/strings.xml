@@ -12,4 +12,7 @@
     <string name="stop_threshold_label">Ferma se la chiamata dura più di (secondi)</string>
     <string name="contacts_permission_denied">Permesso contatti negato</string>
     <string name="phone_permission_denied">Permessi telefonici negati</string>
+    <string name="select_number_title">Seleziona un numero di telefono</string>
+    <string name="default_number_label">Predefinito</string>
+    <string name="cancel">Annulla</string>
 </resources>

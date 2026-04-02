@@ -15,13 +15,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class ContactNumber(
+    val number: String,
+    val typeLabel: String,
+    val isPrimary: Boolean
+)
+
 data class RedialUiState(
     val contactName: String? = null,
     val phoneNumber: String? = null,
     val isRedialing: Boolean = false,
     val statusMessageResId: Int = R.string.idle_status,
     val delaySeconds: String = RedialViewModel.MIN_DELAY_SECONDS.toString(),
-    val stopThresholdSeconds: String = RedialViewModel.MIN_STOP_THRESHOLD_SECONDS.toString()
+    val stopThresholdSeconds: String = RedialViewModel.MIN_STOP_THRESHOLD_SECONDS.toString(),
+    val numbersToSelect: List<ContactNumber>? = null
 )
 
 class RedialViewModel(application: Application) : AndroidViewModel(application) {
@@ -70,12 +77,39 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun onContactSelected(name: String, numbers: List<ContactNumber>) {
+        if (numbers.isEmpty()) {
+            _uiState.update { it.copy(numbersToSelect = null) }
+            return
+        }
+        
+        if (numbers.size == 1) {
+            updateContact(name, numbers[0].number)
+        } else {
+            _uiState.update { 
+                it.copy(
+                    contactName = name,
+                    numbersToSelect = numbers 
+                ) 
+            }
+        }
+    }
+
+    fun onNumberChosen(number: String) {
+        updateContact(_uiState.value.contactName, number)
+    }
+
+    fun dismissNumberSelection() {
+        _uiState.update { it.copy(numbersToSelect = null) }
+    }
+
     fun updateContact(name: String?, number: String?) {
         _uiState.update {
             it.copy(
                 contactName = name,
                 phoneNumber = number,
-                statusMessageResId = R.string.idle_status
+                statusMessageResId = R.string.idle_status,
+                numbersToSelect = null
             )
         }
     }

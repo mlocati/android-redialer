@@ -12,4 +12,7 @@
     <string name="stop_threshold_label">Stop if call lasts more than (seconds)</string>
     <string name="contacts_permission_denied">Contact permission denied</string>
     <string name="phone_permission_denied">Phone permissions denied</string>
+    <string name="select_number_title">Select a phone number</string>
+    <string name="default_number_label">Default</string>
+    <string name="cancel">Cancel</string>
 </resources>
