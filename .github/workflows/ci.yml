@@ -69,6 +69,9 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleDebug assembleRelease bundleRelease --build-cache
 
+      - name: List build outputs
+        run: find app/build/outputs -name '*.aab' -o -name '*.apk' | sort
+
       - name: Upload APKs
         uses: actions/upload-artifact@v6
         with:
@@ -99,6 +102,6 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: it.locati.michele.redialer
-          releaseFile: app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: app/build/outputs/bundle/release/*.aab
           track: internal
           status: completed
