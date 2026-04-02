@@ -46,20 +46,44 @@ jobs:
         with:
           gradle-version: wrapper
 
-      - name: Build with Gradle
-        run: ./gradlew assembleDebug assembleRelease --build-cache
+      - name: Decode Keystore
+        id: decode_keystore
+        run: |
+          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            if [ -z "${{ steps.check_tag.outputs.tag_version }}" ]; then
+              echo "No keystore provided, skipping signing setup for non-release build."
+            else
+              echo "Error: No keystore provided for release build. Please set the KEYSTORE_BASE64 secret."
+              exit 1
+            fi
+          else
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $RUNNER_TEMP/release.keystore
+            echo "keystore_path=$RUNNER_TEMP/release.keystore" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        env:
+          KEYSTORE_PATH: ${{ steps.decode_keystore.outputs.keystore_path }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleDebug assembleRelease bundleRelease --build-cache
 
       - name: Upload APKs
         uses: actions/upload-artifact@v6
         with:
           name: app-apks
-          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/app-release.apk
 
-      - name: Create Release
+      - name: Create GitHub Release
         id: create_release
         if: steps.check_tag.outputs.tag_version
         uses: softprops/action-gh-release@v2
         with:
+          fail_on_unmatched_files: true
           files: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release.apk
@@ -69,8 +93,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Add Release URL to Summary
+      - name: Publish to Play Store (Internal Testing)
         if: steps.check_tag.outputs.tag_version
-        run: |
-          echo "### Release created" >> $GITHUB_STEP_SUMMARY
-          echo "The new release is available here: ${{ steps.create_release.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          packageName: it.locati.michele.redialer
+          releaseFile: app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
