@@ -15,4 +15,5 @@
     <string name="select_number_title">Seleziona un numero di telefono</string>
     <string name="default_number_label">Predefinito</string>
     <string name="cancel">Annulla</string>
+    <string name="contact_no_phone">Il contatto selezionato non ha numeri di telefono</string>
 </resources>

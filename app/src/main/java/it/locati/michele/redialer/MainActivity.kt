@@ -289,13 +289,17 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         
-                        // Sort numbers to put primary one first
-                        numbers.sortByDescending { it.isPrimary }
-                        
-                        viewModel.onContactSelected(name, numbers)
+                        if (numbers.isEmpty()) {
+                            viewModel.updateContact(name, null)
+                            Toast.makeText(this, getString(R.string.contact_no_phone), Toast.LENGTH_SHORT).show()
+                        } else {
+                            // Sort numbers to put primary one first
+                            numbers.sortByDescending { it.isPrimary }
+                            viewModel.onContactSelected(name, numbers)
+                        }
                     } else {
                         viewModel.updateContact(name, null)
-                        Toast.makeText(this, "Contact has no phone number", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, getString(R.string.contact_no_phone), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
