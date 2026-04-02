@@ -24,6 +24,7 @@ data class ContactNumber(
 data class RedialUiState(
     val contactName: String? = null,
     val phoneNumber: String? = null,
+    val phoneType: String? = null,
     val isRedialing: Boolean = false,
     val statusMessageResId: Int = R.string.idle_status,
     val delaySeconds: String = RedialViewModel.MIN_DELAY_SECONDS.toString(),
@@ -84,7 +85,7 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
         }
         
         if (numbers.size == 1) {
-            updateContact(name, numbers[0].number)
+            updateContact(name, numbers[0].number, numbers[0].typeLabel)
         } else {
             _uiState.update { 
                 it.copy(
@@ -95,19 +96,20 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun onNumberChosen(number: String) {
-        updateContact(_uiState.value.contactName, number)
+    fun onNumberChosen(contactNumber: ContactNumber) {
+        updateContact(_uiState.value.contactName, contactNumber.number, contactNumber.typeLabel)
     }
 
     fun dismissNumberSelection() {
         _uiState.update { it.copy(numbersToSelect = null) }
     }
 
-    fun updateContact(name: String?, number: String?) {
+    fun updateContact(name: String?, number: String?, type: String? = null) {
         _uiState.update {
             it.copy(
                 contactName = name,
                 phoneNumber = number,
+                phoneType = type,
                 statusMessageResId = R.string.idle_status,
                 numbersToSelect = null
             )
@@ -119,6 +121,7 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
             it.copy(
                 phoneNumber = newNumber,
                 contactName = null,
+                phoneType = null,
                 statusMessageResId = R.string.idle_status
             )
         }

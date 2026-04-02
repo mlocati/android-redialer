@@ -64,6 +64,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -321,7 +322,7 @@ fun RedialerScreen(
     onPickContact: () -> Unit,
     onStartRedial: () -> Unit,
     onStopRedial: () -> Unit,
-    onNumberChosen: (String) -> Unit,
+    onNumberChosen: (ContactNumber) -> Unit,
     onDismissNumberSelection: () -> Unit
 ) {
     Scaffold(
@@ -341,11 +342,16 @@ fun RedialerScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !uiState.isRedialing) { onPickContact() }
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.ContactPage,
@@ -354,16 +360,18 @@ fun RedialerScreen(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    if (uiState.contactName != null) {
+                    Text(
+                        text = uiState.contactName ?: stringResource(R.string.select_contact),
+                        style = if (uiState.contactName != null) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (uiState.contactName != null) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = TextAlign.Center
+                    )
+                    if (!uiState.phoneType.isNullOrBlank()) {
                         Text(
-                            text = stringResource(R.string.contact_selected, uiState.contactName),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    } else {
-                        Text(
-                            text = stringResource(R.string.manual_number_label),
-                            style = MaterialTheme.typography.bodyLarge
+                            text = uiState.phoneType,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -410,16 +418,6 @@ fun RedialerScreen(
                 singleLine = true,
                 enabled = !uiState.isRedialing
             )
-
-            Button(
-                onClick = onPickContact,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isRedialing
-            ) {
-                Icon(Icons.Rounded.ContactPage, contentDescription = null)
-                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                Text(stringResource(R.string.select_contact))
-            }
 
             Text(
                 text = stringResource(uiState.statusMessageResId),
@@ -474,7 +472,7 @@ fun RedialerScreen(
 fun NumberSelectionDialog(
     contactName: String,
     numbers: List<ContactNumber>,
-    onNumberChosen: (String) -> Unit,
+    onNumberChosen: (ContactNumber) -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -509,7 +507,7 @@ fun NumberSelectionDialog(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onNumberChosen(contactNumber.number) }
+                                .clickable { onNumberChosen(contactNumber) }
                         )
                         HorizontalDivider()
                     }
@@ -532,6 +530,7 @@ fun RedialerScreenPreview() {
             uiState = RedialUiState(
                 contactName = "John Doe",
                 phoneNumber = "+123456789",
+                phoneType = "Mobile",
                 isRedialing = false,
                 statusMessageResId = R.string.idle_status,
                 delaySeconds = "5",
