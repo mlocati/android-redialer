@@ -16,4 +16,11 @@
     <string name="default_number_label">Default</string>
     <string name="cancel">Cancel</string>
     <string name="contact_no_phone">This contact has no phone numbers</string>
+    <string name="about_title">About</string>
+    <string name="version_label">Version: %1$s</string>
+    <string name="build_label">Build: %1$d</string>
+    <string name="author_label">Author: Michele Locati</string>
+    <string name="license_label">License: MIT</string>
+    <string name="source_code">Source Code</string>
+    <string name="report_issue">Report an Issue</string>
 </resources>

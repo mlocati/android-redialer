@@ -38,6 +38,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.ContactPage
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -46,6 +47,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -58,9 +60,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -115,6 +121,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             RedialerTheme {
                 val uiState by viewModel.uiState.collectAsState()
+                var showAboutDialog by remember { mutableStateOf(false) }
                 
                 RedialerScreen(
                     uiState = uiState,
@@ -127,8 +134,15 @@ class MainActivity : ComponentActivity() {
                     onStartRedial = { attemptStartRedial() },
                     onStopRedial = { viewModel.stopRedialing() },
                     onNumberChosen = { viewModel.onNumberChosen(it) },
-                    onDismissNumberSelection = { viewModel.dismissNumberSelection() }
+                    onDismissNumberSelection = { viewModel.dismissNumberSelection() },
+                    onShowAbout = { showAboutDialog = true }
                 )
+
+                if (showAboutDialog) {
+                    AboutDialog(
+                        onDismiss = { showAboutDialog = false }
+                    )
+                }
 
                 LaunchedEffect(Unit) {
                     viewModel.callRequest.collect { number ->
@@ -323,12 +337,21 @@ fun RedialerScreen(
     onStartRedial: () -> Unit,
     onStopRedial: () -> Unit,
     onNumberChosen: (ContactNumber) -> Unit,
-    onDismissNumberSelection: () -> Unit
+    onDismissNumberSelection: () -> Unit,
+    onShowAbout: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) }
+                title = { Text(stringResource(R.string.app_name)) },
+                actions = {
+                    IconButton(onClick = onShowAbout) {
+                        Icon(
+                            imageVector = Icons.Rounded.Info,
+                            contentDescription = stringResource(R.string.about_title)
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -522,6 +545,75 @@ fun NumberSelectionDialog(
     )
 }
 
+@Composable
+fun AboutDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+    val versionName = packageInfo.versionName ?: "N/A"
+    val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        packageInfo.longVersionCode
+    } else {
+        @Suppress("DEPRECATION")
+        packageInfo.versionCode.toLong()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.about_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.version_label, versionName),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = stringResource(R.string.build_label, versionCode),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = stringResource(R.string.author_label),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = stringResource(R.string.license_label),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/mlocati/android-redialer/blob/main/LICENSE"))
+                        context.startActivity(intent)
+                    },
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                TextButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/mlocati/android-redialer"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.source_code))
+                }
+                TextButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/mlocati/android-redialer/issues"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.report_issue))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK")
+            }
+        }
+    )
+}
+
 @Preview(showBackground = true)
 @Composable
 fun RedialerScreenPreview() {
@@ -545,7 +637,8 @@ fun RedialerScreenPreview() {
             onStartRedial = {},
             onStopRedial = {},
             onNumberChosen = {},
-            onDismissNumberSelection = {}
+            onDismissNumberSelection = {},
+            onShowAbout = {}
         )
     }
 }

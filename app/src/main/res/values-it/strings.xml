@@ -16,4 +16,11 @@
     <string name="default_number_label">Predefinito</string>
     <string name="cancel">Annulla</string>
     <string name="contact_no_phone">Il contatto selezionato non ha numeri di telefono</string>
+    <string name="about_title">Informazioni</string>
+    <string name="version_label">Versione: %1$s</string>
+    <string name="build_label">Build: %1$d</string>
+    <string name="author_label">Autore: Michele Locati</string>
+    <string name="license_label">Licenza: MIT</string>
+    <string name="source_code">Codice sorgente</string>
+    <string name="report_issue">Segnala un problema</string>
 </resources>
