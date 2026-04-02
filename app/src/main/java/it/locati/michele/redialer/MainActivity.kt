@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package it.locati.michele.redialer
 
 import android.Manifest
@@ -51,6 +52,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -108,14 +110,10 @@ class MainActivity : ComponentActivity() {
                 RedialerScreen(
                     uiState = uiState,
                     onPhoneNumberChange = { viewModel.onPhoneNumberChange(it) },
-                    onDelayChange = { 
-                        val seconds = it.toIntOrNull() ?: 5
-                        viewModel.onDelayChange(seconds)
-                    },
-                    onStopThresholdChange = {
-                        val seconds = it.toIntOrNull() ?: 10
-                        viewModel.onStopThresholdChange(seconds)
-                    },
+                    onDelayChange = { viewModel.onDelayChange(it) },
+                    onDelayBlur = { viewModel.onDelayBlur() },
+                    onStopThresholdChange = { viewModel.onStopThresholdChange(it) },
+                    onStopThresholdBlur = { viewModel.onStopThresholdBlur() },
                     onPickContact = { attemptPickContact() },
                     onStartRedial = { attemptStartRedial() },
                     onStopRedial = { viewModel.stopRedialing() }
@@ -157,7 +155,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun registerCallStateListener() {
         if (telephonyCallback != null) return // Already registered
 
@@ -179,7 +176,6 @@ class MainActivity : ComponentActivity() {
                 telephonyCallback = callback
             } else {
                 val listener = object : PhoneStateListener() {
-                    @Deprecated("Deprecated in Java")
                     override fun onCallStateChanged(state: Int, phoneNumber: String?) {
                         viewModel.onCallStateChanged(state)
                     }
@@ -194,7 +190,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun unregisterCallStateListener() {
         val tm = telephonyManager ?: return
         val callback = telephonyCallback ?: return
@@ -285,7 +280,9 @@ fun RedialerScreen(
     uiState: RedialUiState,
     onPhoneNumberChange: (String) -> Unit,
     onDelayChange: (String) -> Unit,
+    onDelayBlur: () -> Unit,
     onStopThresholdChange: (String) -> Unit,
+    onStopThresholdBlur: () -> Unit,
     onPickContact: () -> Unit,
     onStartRedial: () -> Unit,
     onStopRedial: () -> Unit
@@ -346,20 +343,32 @@ fun RedialerScreen(
             )
 
             OutlinedTextField(
-                value = uiState.delaySeconds.toString(),
+                value = uiState.delaySeconds,
                 onValueChange = onDelayChange,
                 label = { Text(stringResource(R.string.delay_label)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            onDelayBlur()
+                        }
+                    },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 enabled = !uiState.isRedialing
             )
 
             OutlinedTextField(
-                value = uiState.stopThresholdSeconds.toString(),
+                value = uiState.stopThresholdSeconds,
                 onValueChange = onStopThresholdChange,
                 label = { Text(stringResource(R.string.stop_threshold_label)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            onStopThresholdBlur()
+                        }
+                    },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 enabled = !uiState.isRedialing
@@ -425,12 +434,14 @@ fun RedialerScreenPreview() {
                 phoneNumber = "+123456789",
                 isRedialing = false,
                 statusMessageResId = R.string.idle_status,
-                delaySeconds = 5,
-                stopThresholdSeconds = 10
+                delaySeconds = "5",
+                stopThresholdSeconds = "10"
             ),
             onPhoneNumberChange = {},
             onDelayChange = {},
+            onDelayBlur = {},
             onStopThresholdChange = {},
+            onStopThresholdBlur = {},
             onPickContact = {},
             onStartRedial = {},
             onStopRedial = {}
