@@ -20,6 +20,7 @@ jobs:
     outputs:
       tag_version: ${{ steps.check_tag.outputs.tag_version }}
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -58,28 +59,46 @@ jobs:
             const rangeArg = prevTag ? `${prevTag}..HEAD` : 'HEAD';
             const log = execSync(`git log ${rangeArg} --no-merges --pretty=format:%s`).toString();
 
-            const notes = log
+            const releaseNotes = log
               .split('\n')
+              .map(line => line.trim())
               .filter(line => line.length > 0)
               .filter(line => !/^minor /i.test(line) && !/^\[minor\]/i.test(line))
-              .map(line => line.replace(/ \(#\d+\)$/, ''))
+              .filter(line => !/^Version \d+\.\d+\.\d+$/i.test(line))
+              .map(line => line.replace(/\s+\(#\d+\)$/, ''))
+              .map(line => `- ${line}`)
               .join('\n');
 
             const repoUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`;
             const changelogUrl = prevTag
               ? `${repoUrl}/compare/${prevTag}...${tagVersion}`
               : `${repoUrl}/releases/tag/${tagVersion}`;
-            const notesWithChangelog = notes
-              ? `${notes}\n\nFull Changelog: ${changelogUrl}`
+
+            const releaseNotesWithChangelogUrl = releaseNotes
+              ? `${releaseNotes}\n\nFull Changelog: ${changelogUrl}`
               : `Full Changelog: ${changelogUrl}`;
 
-            core.info(`Generated release notes:\n${notesWithChangelog}`);
-            core.setOutput('release_notes', notesWithChangelog);
+            core.startGroup('Release notes for GitHub Release');
+            core.info(releaseNotesWithChangelogUrl);
+            core.endGroup();
+            core.setOutput('release_notes', releaseNotesWithChangelogUrl);
 
+            const playStoreMaxLength = 500;
+            let playStoreReleaseNotes;
+            if (releaseNotesWithChangelogUrl.length <= playStoreMaxLength) {
+              playStoreReleaseNotes = releaseNotesWithChangelogUrl;
+            } else if (releaseNotes.length <= playStoreMaxLength) {
+              playStoreReleaseNotes = releaseNotes;
+            } else {
+              playStoreReleaseNotes = releaseNotes.substring(0, playStoreMaxLength - 3) + '...'
+            }
             const whatsnewDir = `${process.env.RUNNER_TEMP}/whatsnew`;
             fs.mkdirSync(whatsnewDir, { recursive: true });
-            fs.writeFileSync(`${whatsnewDir}/whatsnew-en-US`, notesWithChangelog);
+            fs.writeFileSync(`${whatsnewDir}/whatsnew-en-US`, playStoreReleaseNotes);
             core.setOutput('whatsnew_dir', whatsnewDir);
+            core.startGroup('Release notes for Play Store');
+            core.info(playStoreReleaseNotes);
+            core.endGroup();
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
