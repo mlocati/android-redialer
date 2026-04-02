@@ -25,7 +25,7 @@ These scripts will:
 After running the script, push the commit and the tag to the remote repository in one command:
 
 ```bash
-git push origin main --follow-tags
+git push origin main --tags
 ```
 
 ## 3. Automated Process
