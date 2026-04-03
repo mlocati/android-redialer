@@ -6,6 +6,9 @@ on:
       - main
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+'
   pull_request:
     branches:
       - main
@@ -30,12 +33,17 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const TRACK_TEST_INTERNAL = 'internal';
+            const TRACK_TEST_CLOSED = 'beta';
+            const TRACK_TEST_OPEN = 'alpha';
+            const TRACK_PRODUCTION = 'production';
+
             const fs = require('fs');
             const { execSync } = require('child_process');
 
             const repoUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`;
             const versionTagName = context.ref.replace('refs/tags/', '');
-            const versionFromTag = versionTagName.substring(1);
+            const versionFromTag = versionTagName.substring(1).toLowerCase();
 
             const buildGradleContents = fs.readFileSync('app/build.gradle.kts', 'utf8');
             const match = buildGradleContents.match(/versionName\s*=\s*"([^"]+)"/);
@@ -50,6 +58,18 @@ jobs:
             }
             core.setOutput('version_tag_name', versionTagName);
             core.setOutput('version_from_tag', versionFromTag);
+
+            const preReleaseMatch = versionFromTag.match(/-(alpha|beta|rc)\.\d+$/);
+            const preReleaseType = preReleaseMatch ? preReleaseMatch[1] : null;
+            const isPreRelease = preReleaseType !== null;
+            const playStoreTrackMap = {
+              alpha: TRACK_TEST_INTERNAL,
+              beta: TRACK_TEST_CLOSED,
+              rc: TRACK_TEST_CLOSED,
+            };
+            const playStoreTrack = isPreRelease ? playStoreTrackMap[preReleaseType] : TRACK_PRODUCTION;
+            core.setOutput('is_pre_release', isPreRelease ? 'true' : 'false');
+            core.setOutput('play_store_track', playStoreTrack);
 
             let prevTag;
             try {
@@ -74,7 +94,7 @@ jobs:
                 .split('\n')
                 .map(line => line.trim())
                 .filter(line => !/^minor /i.test(line) && !/^\[minor\]/i.test(line))
-                .filter(line => !/^Version \d+\.\d+\.\d+$/i.test(line))
+                .filter(line => !/^Version \d+\.\d+\.\d+/i.test(line))
                 .map(line => line.replace(/\s*\(#\d+\)$/, ''))
                 .filter(line => line.length > 0)
                 .map(line => `- ${line}`)
@@ -155,14 +175,14 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release.apk
 
-      - name: Publish to Play Store (Alpha)
+      - name: Publish to Play Store (${{ steps.check_tag.outputs.play_store_track }})
         if: steps.check_tag.outputs.version_tag_name
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: it.locati.michele.redialer
           releaseFiles: app/build/outputs/bundle/release/*.aab
-          track: alpha
+          track: ${{ steps.check_tag.outputs.play_store_track }}
           status: draft
           whatsNewDirectory: ${{ steps.check_tag.outputs.whatsnew_dir }}
 
@@ -177,5 +197,7 @@ jobs:
           body: ${{ steps.check_tag.outputs.github_release_notes }}
           tag_name: ${{ steps.check_tag.outputs.version_tag_name }}
           name: Release ${{ steps.check_tag.outputs.version_from_tag }}
+          prerelease: ${{ steps.check_tag.outputs.is_pre_release == 'true' }}
+          make_latest: ${{ steps.check_tag.outputs.is_pre_release == 'false' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

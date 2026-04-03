@@ -1,6 +1,5 @@
 param (
     [Parameter(Mandatory=$true)]
-    [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
     [string]$Version
 )
 
@@ -9,6 +8,16 @@ Set-StrictMode -Version Latest
 
 # Move to the script's directory
 Set-Location -Path $PSScriptRoot
+
+if ($Version) {
+    $Version = $Version.Trim().ToLowerInvariant()
+} else {
+    $Version = ''
+}
+if ($Version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$') {
+    Write-Error "Error: Version must be in the format major.minor.patch[-(alpha|beta|rc).n] (e.g., 1.2.3 or 1.2.3-alpha.1)"
+    exit 1
+}
 
 $file = "app/build.gradle.kts"
 if (-not (Test-Path $file)) {
