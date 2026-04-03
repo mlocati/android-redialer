@@ -169,13 +169,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to Play Store (Internal Testing)
+      - name: Publish to Play Store (Alpha)
         if: steps.check_tag.outputs.version_tag_name
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: it.locati.michele.redialer
           releaseFiles: app/build/outputs/bundle/release/*.aab
-          track: internal
+          track: alpha
           status: draft
           whatsNewDirectory: ${{ steps.check_tag.outputs.whatsnew_dir }}
