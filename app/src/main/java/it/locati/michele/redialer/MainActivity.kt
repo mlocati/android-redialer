@@ -20,6 +20,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.ContactPage
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.AlertDialog
@@ -66,6 +69,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -337,6 +341,8 @@ fun RedialerScreen(
     onDismissNumberSelection: () -> Unit,
     onShowAbout: () -> Unit
 ) {
+    var optionsExpanded by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -407,30 +413,68 @@ fun RedialerScreen(
                 enabled = !uiState.isRedialing
             )
 
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = stringResource(R.string.delay_label, uiState.delaySeconds),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Slider(
-                    value = uiState.delaySeconds.toFloat(),
-                    onValueChange = { onDelayChange(it.roundToInt()) },
-                    valueRange = RedialViewModel.MIN_DELAY_SECONDS.toFloat()..RedialViewModel.MAX_DELAY_SECONDS.toFloat(),
-                    enabled = !uiState.isRedialing
-                )
-            }
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    val rotationState by animateFloatAsState(
+                        targetValue = if (optionsExpanded) 180f else 0f, label = "rotation"
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { optionsExpanded = !optionsExpanded }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(
+                            imageVector = Icons.Rounded.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.rotate(rotationState)
+                        )
+                    }
 
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = stringResource(R.string.stop_threshold_label, uiState.stopThresholdSeconds),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Slider(
-                    value = uiState.stopThresholdSeconds.toFloat(),
-                    onValueChange = { onStopThresholdChange(it.roundToInt()) },
-                    valueRange = RedialViewModel.MIN_STOP_THRESHOLD_SECONDS.toFloat()..RedialViewModel.MAX_STOP_THRESHOLD_SECONDS.toFloat(),
-                    enabled = !uiState.isRedialing
-                )
+                    AnimatedVisibility(visible = optionsExpanded) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = stringResource(R.string.delay_label, uiState.delaySeconds),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Slider(
+                                    value = uiState.delaySeconds.toFloat(),
+                                    onValueChange = { onDelayChange(it.roundToInt()) },
+                                    valueRange = RedialViewModel.MIN_DELAY_SECONDS.toFloat()..RedialViewModel.MAX_DELAY_SECONDS.toFloat(),
+                                    enabled = !uiState.isRedialing
+                                )
+                            }
+
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = stringResource(R.string.stop_threshold_label, uiState.stopThresholdSeconds),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Slider(
+                                    value = uiState.stopThresholdSeconds.toFloat(),
+                                    onValueChange = { onStopThresholdChange(it.roundToInt()) },
+                                    valueRange = RedialViewModel.MIN_STOP_THRESHOLD_SECONDS.toFloat()..RedialViewModel.MAX_STOP_THRESHOLD_SECONDS.toFloat(),
+                                    enabled = !uiState.isRedialing
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             Text(

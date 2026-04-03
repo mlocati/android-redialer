@@ -23,4 +23,5 @@
     <string name="license_label">License: MIT</string>
     <string name="source_code">Source Code</string>
     <string name="report_issue">Report an Issue</string>
+    <string name="settings_title">Options</string>
 </resources>
