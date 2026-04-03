@@ -15,8 +15,8 @@ android {
         applicationId = "it.locati.michele.redialer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.4.0"
+        versionCode = 15
+        versionName = "1.4.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
