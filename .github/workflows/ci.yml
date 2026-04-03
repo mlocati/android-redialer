@@ -155,6 +155,17 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release.apk
 
+      - name: Publish to Play Store (Alpha)
+        if: steps.check_tag.outputs.version_tag_name
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          packageName: it.locati.michele.redialer
+          releaseFiles: app/build/outputs/bundle/release/*.aab
+          track: alpha
+          status: draft
+          whatsNewDirectory: ${{ steps.check_tag.outputs.whatsnew_dir }}
+
       - name: Create GitHub Release
         if: steps.check_tag.outputs.version_tag_name
         uses: softprops/action-gh-release@v2
@@ -168,14 +179,3 @@ jobs:
           name: Release ${{ steps.check_tag.outputs.version_from_tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to Play Store (Alpha)
-        if: steps.check_tag.outputs.version_tag_name
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
-          packageName: it.locati.michele.redialer
-          releaseFiles: app/build/outputs/bundle/release/*.aab
-          track: alpha
-          status: draft
-          whatsNewDirectory: ${{ steps.check_tag.outputs.whatsnew_dir }}
