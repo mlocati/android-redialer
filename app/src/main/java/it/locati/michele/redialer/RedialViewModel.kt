@@ -27,8 +27,8 @@ data class RedialUiState(
     val phoneType: String? = null,
     val isRedialing: Boolean = false,
     val statusMessageResId: Int = R.string.idle_status,
-    val delaySeconds: String = RedialViewModel.MIN_DELAY_SECONDS.toString(),
-    val stopThresholdSeconds: String = RedialViewModel.MIN_STOP_THRESHOLD_SECONDS.toString(),
+    val delaySeconds: Int = RedialViewModel.DEFAULT_DELAY_SECONDS,
+    val stopThresholdSeconds: Int = RedialViewModel.DEFAULT_STOP_THRESHOLD_SECONDS,
     val numbersToSelect: List<ContactNumber>? = null
 )
 
@@ -36,7 +36,12 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
 
     companion object {
         const val MIN_DELAY_SECONDS = 5
+        const val MAX_DELAY_SECONDS = 120
+        const val DEFAULT_DELAY_SECONDS = 10
+
         const val MIN_STOP_THRESHOLD_SECONDS = 1
+        const val MAX_STOP_THRESHOLD_SECONDS = 10
+        const val DEFAULT_STOP_THRESHOLD_SECONDS = 2
     }
 
     private val prefs = RedialPreferences(application)
@@ -54,26 +59,14 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
     init {
         viewModelScope.launch {
             prefs.delaySeconds.collect { seconds ->
-                val safeSeconds = seconds.coerceAtLeast(MIN_DELAY_SECONDS)
-                _uiState.update { currentState ->
-                    if (currentState.delaySeconds.toIntOrNull() != safeSeconds) {
-                        currentState.copy(delaySeconds = safeSeconds.toString())
-                    } else {
-                        currentState
-                    }
-                }
+                val safeSeconds = seconds.coerceIn(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
+                _uiState.update { it.copy(delaySeconds = safeSeconds) }
             }
         }
         viewModelScope.launch {
             prefs.stopThresholdSeconds.collect { seconds ->
-                val safeSeconds = seconds.coerceAtLeast(MIN_STOP_THRESHOLD_SECONDS)
-                _uiState.update { currentState ->
-                    if (currentState.stopThresholdSeconds.toIntOrNull() != safeSeconds) {
-                        currentState.copy(stopThresholdSeconds = safeSeconds.toString())
-                    } else {
-                        currentState
-                    }
-                }
+                val safeSeconds = seconds.coerceIn(MIN_STOP_THRESHOLD_SECONDS, MAX_STOP_THRESHOLD_SECONDS)
+                _uiState.update { it.copy(stopThresholdSeconds = safeSeconds) }
             }
         }
     }
@@ -127,58 +120,28 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun onDelayChange(input: String) {
-        _uiState.update { it.copy(delaySeconds = input) }
-        input.toIntOrNull()?.let { seconds ->
-            if (seconds >= MIN_DELAY_SECONDS) {
-                viewModelScope.launch {
-                    prefs.saveDelaySeconds(seconds)
-                }
-            }
+    fun onDelayChange(seconds: Int) {
+        val safeSeconds = seconds.coerceIn(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
+        _uiState.update { it.copy(delaySeconds = safeSeconds) }
+        viewModelScope.launch {
+            prefs.saveDelaySeconds(safeSeconds)
         }
     }
 
-    fun onDelayBlur() {
-        _uiState.update { 
-            it.copy(delaySeconds = effectiveDelaySeconds.toString())
+    fun onStopThresholdChange(seconds: Int) {
+        val safeSeconds = seconds.coerceIn(MIN_STOP_THRESHOLD_SECONDS, MAX_STOP_THRESHOLD_SECONDS)
+        _uiState.update { it.copy(stopThresholdSeconds = safeSeconds) }
+        viewModelScope.launch {
+            prefs.saveStopThresholdSeconds(safeSeconds)
         }
     }
-
-    fun onStopThresholdChange(input: String) {
-        _uiState.update { it.copy(stopThresholdSeconds = input) }
-        input.toIntOrNull()?.let { seconds ->
-            if (seconds >= MIN_STOP_THRESHOLD_SECONDS) {
-                viewModelScope.launch {
-                    prefs.saveStopThresholdSeconds(seconds)
-                }
-            }
-        }
-    }
-
-    fun onStopThresholdBlur() {
-        _uiState.update { 
-            it.copy(stopThresholdSeconds = effectiveStopThresholdSeconds.toString())
-        }
-    }
-
-    private val effectiveDelaySeconds: Int
-        get() = _uiState.value.delaySeconds.toIntOrNull()?.coerceAtLeast(MIN_DELAY_SECONDS) ?: MIN_DELAY_SECONDS
-
-    private val effectiveStopThresholdSeconds: Int
-        get() = _uiState.value.stopThresholdSeconds.toIntOrNull()?.coerceAtLeast(MIN_STOP_THRESHOLD_SECONDS) ?: MIN_STOP_THRESHOLD_SECONDS
 
     fun startRedialing() {
         val number = uiState.value.phoneNumber
         if (number.isNullOrBlank()) return
         if (uiState.value.isRedialing) return
 
-        _uiState.update { 
-            it.copy(
-                isRedialing = true,
-                delaySeconds = effectiveDelaySeconds.toString(),
-                stopThresholdSeconds = effectiveStopThresholdSeconds.toString()
-            ) 
-        }
+        _uiState.update { it.copy(isRedialing = true) }
 
         redialJob = viewModelScope.launch {
             try {
@@ -188,7 +151,7 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
                     waitForCallToEnd()
                     if (uiState.value.isRedialing) {
                         _uiState.update { it.copy(statusMessageResId = R.string.busy_status) }
-                        delay(effectiveDelaySeconds * 1000L)
+                        delay(uiState.value.delaySeconds * 1000L)
                     }
                 }
             } finally {
@@ -218,7 +181,7 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
         }
         if (state == TelephonyManager.CALL_STATE_IDLE && lastState != TelephonyManager.CALL_STATE_IDLE) {
             val duration = System.currentTimeMillis() - callStartTime
-            if (duration > effectiveStopThresholdSeconds * 1000L) {
+            if (duration > uiState.value.stopThresholdSeconds * 1000L) {
                 stopRedialing()
             }
             callEndedChannel.trySend(Unit)

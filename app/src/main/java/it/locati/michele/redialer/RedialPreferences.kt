@@ -16,14 +16,17 @@ class RedialPreferences(private val context: Context) {
     companion object {
         val DELAY_SECONDS = intPreferencesKey("delay_seconds")
         val STOP_THRESHOLD_SECONDS = intPreferencesKey("stop_threshold_seconds")
+        
+        const val DEFAULT_DELAY_SECONDS = 10
+        const val DEFAULT_STOP_THRESHOLD_SECONDS = 2
     }
 
     val delaySeconds: Flow<Int> = context.dataStore.data.map { preferences ->
-        preferences[DELAY_SECONDS] ?: 5
+        preferences[DELAY_SECONDS] ?: DEFAULT_DELAY_SECONDS
     }
 
     val stopThresholdSeconds: Flow<Int> = context.dataStore.data.map { preferences ->
-        preferences[STOP_THRESHOLD_SECONDS] ?: 10
+        preferences[STOP_THRESHOLD_SECONDS] ?: DEFAULT_STOP_THRESHOLD_SECONDS
     }
 
     suspend fun saveDelaySeconds(seconds: Int) {

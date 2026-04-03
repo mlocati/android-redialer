@@ -53,6 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -65,7 +66,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,6 +75,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import it.locati.michele.redialer.ui.theme.RedialerTheme
+import kotlin.math.roundToInt
 
 private const val TAG = "RedialerMainActivity"
 
@@ -127,9 +128,7 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     onPhoneNumberChange = { viewModel.onPhoneNumberChange(it) },
                     onDelayChange = { viewModel.onDelayChange(it) },
-                    onDelayBlur = { viewModel.onDelayBlur() },
                     onStopThresholdChange = { viewModel.onStopThresholdChange(it) },
-                    onStopThresholdBlur = { viewModel.onStopThresholdBlur() },
                     onPickContact = { attemptPickContact() },
                     onStartRedial = { attemptStartRedial() },
                     onStopRedial = { viewModel.stopRedialing() },
@@ -329,10 +328,8 @@ class MainActivity : ComponentActivity() {
 fun RedialerScreen(
     uiState: RedialUiState,
     onPhoneNumberChange: (String) -> Unit,
-    onDelayChange: (String) -> Unit,
-    onDelayBlur: () -> Unit,
-    onStopThresholdChange: (String) -> Unit,
-    onStopThresholdBlur: () -> Unit,
+    onDelayChange: (Int) -> Unit,
+    onStopThresholdChange: (Int) -> Unit,
     onPickContact: () -> Unit,
     onStartRedial: () -> Unit,
     onStopRedial: () -> Unit,
@@ -410,37 +407,31 @@ fun RedialerScreen(
                 enabled = !uiState.isRedialing
             )
 
-            OutlinedTextField(
-                value = uiState.delaySeconds,
-                onValueChange = onDelayChange,
-                label = { Text(stringResource(R.string.delay_label)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { focusState ->
-                        if (!focusState.isFocused) {
-                            onDelayBlur()
-                        }
-                    },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                enabled = !uiState.isRedialing
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.delay_label, uiState.delaySeconds),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Slider(
+                    value = uiState.delaySeconds.toFloat(),
+                    onValueChange = { onDelayChange(it.roundToInt()) },
+                    valueRange = RedialViewModel.MIN_DELAY_SECONDS.toFloat()..RedialViewModel.MAX_DELAY_SECONDS.toFloat(),
+                    enabled = !uiState.isRedialing
+                )
+            }
 
-            OutlinedTextField(
-                value = uiState.stopThresholdSeconds,
-                onValueChange = onStopThresholdChange,
-                label = { Text(stringResource(R.string.stop_threshold_label)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { focusState ->
-                        if (!focusState.isFocused) {
-                            onStopThresholdBlur()
-                        }
-                    },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                enabled = !uiState.isRedialing
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.stop_threshold_label, uiState.stopThresholdSeconds),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Slider(
+                    value = uiState.stopThresholdSeconds.toFloat(),
+                    onValueChange = { onStopThresholdChange(it.roundToInt()) },
+                    valueRange = RedialViewModel.MIN_STOP_THRESHOLD_SECONDS.toFloat()..RedialViewModel.MAX_STOP_THRESHOLD_SECONDS.toFloat(),
+                    enabled = !uiState.isRedialing
+                )
+            }
 
             Text(
                 text = stringResource(uiState.statusMessageResId),
@@ -625,14 +616,12 @@ fun RedialerScreenPreview() {
                 phoneType = "Mobile",
                 isRedialing = false,
                 statusMessageResId = R.string.idle_status,
-                delaySeconds = "5",
-                stopThresholdSeconds = "10"
+                delaySeconds = 5,
+                stopThresholdSeconds = 2
             ),
             onPhoneNumberChange = {},
             onDelayChange = {},
-            onDelayBlur = {},
             onStopThresholdChange = {},
-            onStopThresholdBlur = {},
             onPickContact = {},
             onStartRedial = {},
             onStopRedial = {},

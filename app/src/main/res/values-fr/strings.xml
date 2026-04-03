@@ -8,8 +8,8 @@
     <string name="busy_status">Ligne occupée, nouvel essai...</string>
     <string name="idle_status">Prêt</string>
     <string name="manual_number_label">Numéro de téléphone</string>
-    <string name="delay_label">Délai entre les appels (secondes)</string>
-    <string name="stop_threshold_label">Arrêter se l\'appel dure plus de (secondes)</string>
+    <string name="delay_label">Délai entre les appels : %1$d secondes</string>
+    <string name="stop_threshold_label">Arrêter si l\'appel dure plus de : %1$d secondes</string>
     <string name="contacts_permission_denied">Permission d\'accès aux contacts refusée</string>
     <string name="phone_permission_denied">Permissions téléphoniques refusées</string>
     <string name="select_number_title">Sélectionnez un numéro de téléphone</string>

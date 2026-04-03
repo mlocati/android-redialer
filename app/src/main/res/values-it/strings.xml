@@ -8,8 +8,8 @@
     <string name="busy_status">Occupato, riprovo...</string>
     <string name="idle_status">Pronto</string>
     <string name="manual_number_label">Numero di telefono</string>
-    <string name="delay_label">Ritardo tra chiamate (secondi)</string>
-    <string name="stop_threshold_label">Ferma se la chiamata dura più di (secondi)</string>
+    <string name="delay_label">Ritardo tra le chiamate: %1$d secondi</string>
+    <string name="stop_threshold_label">Ferma se la chiamata dura più di: %1$d secondi</string>
     <string name="contacts_permission_denied">Permesso contatti negato</string>
     <string name="phone_permission_denied">Permessi telefonici negati</string>
     <string name="select_number_title">Seleziona un numero di telefono</string>
