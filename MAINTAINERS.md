@@ -19,7 +19,7 @@ These scripts will:
 1.  **Increment** `versionCode` in `app/build.gradle.kts` by 1.
 2.  **Update** `versionName` to the version provided (e.g., `1.3.0`).
 3.  **Commit** the changes with the message "Version 1.3.0".
-4.  **Create** a git tag named `1.3.0`.
+4.  **Create** a git tag named `v1.3.0`.
 
 ## 2. Push to GitHub
 After running the script, push the commit and the tag to the remote repository in one command:
@@ -41,8 +41,8 @@ If you prefer to do it manually:
 1. Open `app/build.gradle.kts`.
 2. Increment `versionCode` and update `versionName`.
 3. Commit: `git commit -am "Version 1.3.0"`.
-4. Tag: `git tag 1.3.0`.
-5. Push: `git push origin main --follow-tags`.
+4. Tag: `git tag v1.3.0`.
+5. Push: `git push origin main --tags`.
 
 ## 5. Verify the Release
 Go to the **Releases** section of your GitHub repository to ensure everything looks correct and the APKs are attached.

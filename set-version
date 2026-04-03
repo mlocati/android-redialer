@@ -34,6 +34,6 @@ sed -i "s/versionName = \".*\"/versionName = \"$VERSION\"/" "$FILE"
 echo "Committing changes and creating git tag"
 git add "$FILE"
 git commit -m "Version $VERSION"
-git tag "$VERSION"
+git tag "v$VERSION"
 
 echo "Successfully updated to version $VERSION (versionCode $NEW_VCODE) and created git tag."

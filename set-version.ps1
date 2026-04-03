@@ -36,6 +36,6 @@ Set-Content -Path $file -Value $content -NoNewline
 Write-Host "Committing changes and creating git tag"
 git add $file
 git commit -m "Version $Version"
-git tag $Version
+git tag "v$Version"
 
 Write-Host "Successfully updated to version $Version (versionCode $newCode) and created git tag."
