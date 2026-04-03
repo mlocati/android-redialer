@@ -29,6 +29,7 @@ data class RedialUiState(
     val statusMessageResId: Int = R.string.idle_status,
     val delaySeconds: Int = RedialViewModel.DEFAULT_DELAY_SECONDS,
     val stopThresholdSeconds: Int = RedialViewModel.DEFAULT_STOP_THRESHOLD_SECONDS,
+    val optionsExpanded: Boolean = RedialPreferences.DEFAULT_OPTIONS_EXPANDED,
     val numbersToSelect: List<ContactNumber>? = null
 )
 
@@ -67,6 +68,11 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
             prefs.stopThresholdSeconds.collect { seconds ->
                 val safeSeconds = seconds.coerceIn(MIN_STOP_THRESHOLD_SECONDS, MAX_STOP_THRESHOLD_SECONDS)
                 _uiState.update { it.copy(stopThresholdSeconds = safeSeconds) }
+            }
+        }
+        viewModelScope.launch {
+            prefs.optionsExpanded.collect { expanded ->
+                _uiState.update { it.copy(optionsExpanded = expanded) }
             }
         }
     }
@@ -133,6 +139,14 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
         _uiState.update { it.copy(stopThresholdSeconds = safeSeconds) }
         viewModelScope.launch {
             prefs.saveStopThresholdSeconds(safeSeconds)
+        }
+    }
+
+    fun toggleOptions() {
+        val newExpanded = !uiState.value.optionsExpanded
+        _uiState.update { it.copy(optionsExpanded = newExpanded) }
+        viewModelScope.launch {
+            prefs.saveOptionsExpanded(newExpanded)
         }
     }
 

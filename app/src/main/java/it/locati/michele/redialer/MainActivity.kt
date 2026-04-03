@@ -133,6 +133,7 @@ class MainActivity : ComponentActivity() {
                     onPhoneNumberChange = { viewModel.onPhoneNumberChange(it) },
                     onDelayChange = { viewModel.onDelayChange(it) },
                     onStopThresholdChange = { viewModel.onStopThresholdChange(it) },
+                    onToggleOptions = { viewModel.toggleOptions() },
                     onPickContact = { attemptPickContact() },
                     onStartRedial = { attemptStartRedial() },
                     onStopRedial = { viewModel.stopRedialing() },
@@ -334,6 +335,7 @@ fun RedialerScreen(
     onPhoneNumberChange: (String) -> Unit,
     onDelayChange: (Int) -> Unit,
     onStopThresholdChange: (Int) -> Unit,
+    onToggleOptions: () -> Unit,
     onPickContact: () -> Unit,
     onStartRedial: () -> Unit,
     onStopRedial: () -> Unit,
@@ -341,8 +343,6 @@ fun RedialerScreen(
     onDismissNumberSelection: () -> Unit,
     onShowAbout: () -> Unit
 ) {
-    var optionsExpanded by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -418,12 +418,12 @@ fun RedialerScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val rotationState by animateFloatAsState(
-                        targetValue = if (optionsExpanded) 180f else 0f, label = "rotation"
+                        targetValue = if (uiState.optionsExpanded) 180f else 0f, label = "rotation"
                     )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { optionsExpanded = !optionsExpanded }
+                            .clickable { onToggleOptions() }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -440,7 +440,7 @@ fun RedialerScreen(
                         )
                     }
 
-                    AnimatedVisibility(visible = optionsExpanded) {
+                    AnimatedVisibility(visible = uiState.optionsExpanded) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -661,11 +661,13 @@ fun RedialerScreenPreview() {
                 isRedialing = false,
                 statusMessageResId = R.string.idle_status,
                 delaySeconds = 5,
-                stopThresholdSeconds = 2
+                stopThresholdSeconds = 2,
+                optionsExpanded = true
             ),
             onPhoneNumberChange = {},
             onDelayChange = {},
             onStopThresholdChange = {},
+            onToggleOptions = {},
             onPickContact = {},
             onStartRedial = {},
             onStopRedial = {},
