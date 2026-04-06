@@ -52,3 +52,11 @@ The app requires the following permissions to function:
 - `CALL_PHONE`: To initiate the phone calls.
 - `READ_PHONE_STATE`: To detect when a call starts and ends.
 - `READ_CONTACTS`: (Optional) To pick a phone number from your contact list.
+
+## Installation
+
+You can download and install the APK from the [GitHub Releases page](https://github.com/mlocati/android-redialer/releases) or you can install it from the Play Store
+
+<a href="https://play.google.com/store/apps/details?id=it.locati.michele.redialer">
+	<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" width="220" />
+</a>
