@@ -4,8 +4,8 @@
     <string name="start_redialing">Appeler</string>
     <string name="stop">Arrêter</string>
     <string name="contact_selected">Contact sélectionné : %s</string>
-    <string name="calling_status">Appel en cours...</string>
-    <string name="busy_status">Ligne occupée, nouvel essai...</string>
+    <string name="calling_status">Appel en cours…</string>
+    <string name="busy_status">Occupé, rappel dans %1$ds…</string>
     <string name="idle_status">Prêt</string>
     <string name="manual_number_label">Numéro de téléphone</string>
     <string name="delay_label">Délai entre les appels : %1$d secondes</string>
@@ -17,10 +17,10 @@
     <string name="cancel">Annuler</string>
     <string name="contact_no_phone">Ce contact n\'a pas de numéros de téléphone</string>
     <string name="about_title">À propos</string>
-    <string name="version_label">Version: %1$s</string>
-    <string name="build_label">Build: %1$d</string>
-    <string name="author_label">Auteur: Michele Locati</string>
-    <string name="license_label">Licence: MIT</string>
+    <string name="version_label">Version : %1$s</string>
+    <string name="build_label">Build : %1$d</string>
+    <string name="author_label">Auteur : Michele Locati</string>
+    <string name="license_label">Licence : MIT</string>
     <string name="source_code">Code source</string>
     <string name="report_issue">Signaler un problème</string>
     <string name="settings_title">Options</string>

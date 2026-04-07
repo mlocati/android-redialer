@@ -4,8 +4,8 @@
     <string name="start_redialing">Chiama</string>
     <string name="stop">Ferma</string>
     <string name="contact_selected">Contatto selezionato: %s</string>
-    <string name="calling_status">Chiamata in corso...</string>
-    <string name="busy_status">Occupato, riprovo...</string>
+    <string name="calling_status">Chiamata in corso…</string>
+    <string name="busy_status">Occupato, riprovo tra %1$ds…</string>
     <string name="idle_status">Pronto</string>
     <string name="manual_number_label">Numero di telefono</string>
     <string name="delay_label">Ritardo tra le chiamate: %1$d secondi</string>

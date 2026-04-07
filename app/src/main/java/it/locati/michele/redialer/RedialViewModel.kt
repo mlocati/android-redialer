@@ -27,6 +27,7 @@ data class RedialUiState(
     val phoneType: String? = null,
     val isRedialing: Boolean = false,
     val statusMessageResId: Int = R.string.idle_status,
+    val statusMessageArgs: Int? = null,
     val delaySeconds: Int = RedialViewModel.DEFAULT_DELAY_SECONDS,
     val stopThresholdSeconds: Int = RedialViewModel.DEFAULT_STOP_THRESHOLD_SECONDS,
     val optionsExpanded: Boolean = RedialPreferences.DEFAULT_OPTIONS_EXPANDED,
@@ -110,6 +111,7 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
                 phoneNumber = number,
                 phoneType = type,
                 statusMessageResId = R.string.idle_status,
+                statusMessageArgs = null,
                 numbersToSelect = null
             )
         }
@@ -121,7 +123,8 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
                 phoneNumber = newNumber,
                 contactName = null,
                 phoneType = null,
-                statusMessageResId = R.string.idle_status
+                statusMessageResId = R.string.idle_status,
+                statusMessageArgs = null
             )
         }
     }
@@ -160,19 +163,28 @@ class RedialViewModel(application: Application) : AndroidViewModel(application) 
         redialJob = viewModelScope.launch {
             try {
                 while (uiState.value.isRedialing) {
-                    _uiState.update { it.copy(statusMessageResId = R.string.calling_status) }
+                    _uiState.update { it.copy(statusMessageResId = R.string.calling_status, statusMessageArgs = null) }
                     _callRequest.emit(number)
                     waitForCallToEnd()
                     if (uiState.value.isRedialing) {
-                        _uiState.update { it.copy(statusMessageResId = R.string.busy_status) }
-                        delay(uiState.value.delaySeconds * 1000L)
+                        for (remaining in uiState.value.delaySeconds downTo 1) {
+                            if (!uiState.value.isRedialing) break
+                            _uiState.update { 
+                                it.copy(
+                                    statusMessageResId = R.string.busy_status,
+                                    statusMessageArgs = remaining
+                                ) 
+                            }
+                            delay(1000L)
+                        }
                     }
                 }
             } finally {
                 _uiState.update {
                     it.copy(
                         isRedialing = false,
-                        statusMessageResId = R.string.idle_status
+                        statusMessageResId = R.string.idle_status,
+                        statusMessageArgs = null
                     )
                 }
             }

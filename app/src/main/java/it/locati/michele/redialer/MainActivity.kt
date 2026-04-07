@@ -477,8 +477,13 @@ fun RedialerScreen(
                 }
             }
 
+            val statusText = if (uiState.statusMessageArgs != null) {
+                stringResource(uiState.statusMessageResId, uiState.statusMessageArgs)
+            } else {
+                stringResource(uiState.statusMessageResId)
+            }
             Text(
-                text = stringResource(uiState.statusMessageResId),
+                text = statusText,
                 style = MaterialTheme.typography.headlineSmall,
                 color = if (uiState.isRedialing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
             )

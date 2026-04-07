@@ -4,8 +4,8 @@
     <string name="start_redialing">Call</string>
     <string name="stop">Stop</string>
     <string name="contact_selected">Contact Selected: %s</string>
-    <string name="calling_status">Calling...</string>
-    <string name="busy_status">Line busy, retrying...</string>
+    <string name="calling_status">Calling…</string>
+    <string name="busy_status">Line busy, retrying in %1$ds…</string>
     <string name="idle_status">Ready</string>
     <string name="manual_number_label">Phone Number</string>
     <string name="delay_label">Delay between calls: %1$d seconds</string>
