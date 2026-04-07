@@ -20,18 +20,20 @@ An Android application designed to automatically redial phone numbers that are f
 |:---:|:---:|:---:|:---:|
 | [![Phone (idle)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-phone-1.png?raw=true)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-phone-1.png) | [![Phone (calling)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-phone-2.png?raw=true)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-phone-2.png) | [![Tablet (idle)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-tablet7-1.png?raw=true)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-tablet7-1.png) | [![Tablet (calling)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-tablet7-2.png?raw=true)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-tablet7-2.png) |
 
-### Prerequisites
-
-- Android Studio Ladybug or newer.
-- JDK 17.
-- Android device or emulator running API level 24 (Android 7.0) or higher.
-
 ### Building
 
-1. Clone the repository.
-2. Open the project in Android Studio.
-3. Sync Gradle and build the project.
-4. Run on your device.
+You'll need:
+
+- Android Studio
+- JDK 17
+- Android device or emulator running API level 24 (Android 7.0) or higher
+
+Steps:
+
+1. Clone the repository
+2. Open the project in Android Studio
+3. Sync Gradle and build the project
+4. Run on your device
 
 ## CI/CD and Release Security
 
