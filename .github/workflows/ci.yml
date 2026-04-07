@@ -47,9 +47,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Inspect version from Workflow Dispatch
+      - name: Inspect workflow dispatch
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
-        id: workflow_dispatch_version
+        id: inspect_workflow_dispatch
         uses: actions/github-script@v7
         with:
           script: |
@@ -77,12 +77,14 @@ jobs:
             execSync('git config user.name "GitHub"');
             execSync('git config user.email "noreply@github.com"');
             execSync(`./set-version ${newVersion}`);
+            const newHeadSHA = execSync('git rev-parse HEAD').toString().trim();
             core.setOutput('push', 'yes');
             core.setOutput('new_version', newVersion);
+            core.setOutput('new_head_sha', newHeadSHA);
 
-      - name: Inspect tag from push
-        if: startsWith(github.ref, 'refs/tags/v') && !steps.workflow_dispatch_version.outputs.new_version
-        id: check_pushed_tag
+      - name: Inspect pushed tag
+        if: startsWith(github.ref, 'refs/tags/v') && !steps.inspect_workflow_dispatch.outputs.new_version
+        id: inspect_pushed_tag
         uses: actions/github-script@v7
         with:
           script: |
@@ -102,9 +104,9 @@ jobs:
             }
             core.setOutput('version_from_tag', versionFromTag);
 
-      - name: Generate Release Notes
-        id: check_tag
-        if: steps.workflow_dispatch_version.outputs.new_version || steps.check_pushed_tag.outputs.version_from_tag
+      - name: Resolve release details
+        id: resolve_release
+        if: steps.inspect_workflow_dispatch.outputs.new_version || steps.inspect_pushed_tag.outputs.version_from_tag
         uses: actions/github-script@v7
         with:
           script: |
@@ -113,11 +115,17 @@ jobs:
             const TRACK_TEST_OPEN = 'beta';
             const TRACK_PRODUCTION = 'production';
 
+            const PLAYSTORE_TRACK_MAP = {
+              alpha: TRACK_TEST_INTERNAL,
+              beta: TRACK_TEST_CLOSED,
+              rc: TRACK_TEST_CLOSED,
+            };
+
             const fs = require('fs');
             const { execSync } = require('child_process');
 
-            const versionFromDispatch = '${{ steps.workflow_dispatch_version.outputs.new_version }}'.trim();
-            const versionFromTag = '${{ steps.check_pushed_tag.outputs.version_from_tag }}'.trim();
+            const versionFromDispatch = '${{ steps.inspect_workflow_dispatch.outputs.new_version }}';
+            const versionFromTag = '${{ steps.inspect_pushed_tag.outputs.version_from_tag }}';
             const version = versionFromDispatch || versionFromTag;
             core.setOutput('version', version);
             const versionTagName = `v${version}`;
@@ -128,12 +136,7 @@ jobs:
             const preReleaseMatch = version.match(/-(alpha|beta|rc)\.\d+$/);
             const preReleaseType = preReleaseMatch ? preReleaseMatch[1] : null;
             const isPreRelease = preReleaseType !== null;
-            const playStoreTrackMap = {
-              alpha: TRACK_TEST_INTERNAL,
-              beta: TRACK_TEST_CLOSED,
-              rc: TRACK_TEST_CLOSED,
-            };
-            const playStoreTrack = isPreRelease ? playStoreTrackMap[preReleaseType] : TRACK_PRODUCTION;
+            const playStoreTrack = isPreRelease ? PLAYSTORE_TRACK_MAP[preReleaseType] : TRACK_PRODUCTION;
             core.setOutput('is_pre_release', isPreRelease ? 'true' : 'false');
             core.setOutput('play_store_track', playStoreTrack);
 
@@ -209,7 +212,7 @@ jobs:
         id: decode_keystore
         run: |
           if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            if [ -z "${{ steps.check_tag.outputs.version }}" ]; then
+            if [ -z "${{ steps.resolve_release.outputs.version }}" ]; then
               echo "No keystore provided, skipping signing setup for non-release build."
             else
               echo "Error: No keystore provided for release build. Please set the KEYSTORE_BASE64 secret."
@@ -232,10 +235,6 @@ jobs:
       - name: List build outputs
         run: find app/build/outputs -name '*.aab' -o -name '*.apk' | sort
 
-      - name: Push new version commit
-        if: steps.workflow_dispatch_version.outputs.push == 'yes'
-        run: git push && git push --tags
-
       - name: Upload APKs
         uses: actions/upload-artifact@v6
         with:
@@ -245,29 +244,34 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release.apk
 
-      - name: Publish to Play Store (${{ steps.check_tag.outputs.play_store_track }})
-        if: steps.check_tag.outputs.version
+      - name: Push new version commit
+        if: steps.inspect_workflow_dispatch.outputs.push == 'yes'
+        run: git push && git push --tags
+
+      - name: Publish to Play Store (${{ steps.resolve_release.outputs.play_store_track }})
+        if: steps.resolve_release.outputs.version
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: it.locati.michele.redialer
           releaseFiles: app/build/outputs/bundle/release/*.aab
-          track: ${{ steps.check_tag.outputs.play_store_track }}
+          track: ${{ steps.resolve_release.outputs.play_store_track }}
           status: draft
-          whatsNewDirectory: ${{ steps.check_tag.outputs.whatsnew_dir }}
+          whatsNewDirectory: ${{ steps.resolve_release.outputs.whatsnew_dir }}
 
       - name: Create GitHub Release
-        if: steps.check_tag.outputs.version
+        if: steps.resolve_release.outputs.version
         uses: softprops/action-gh-release@v2
         with:
+          target_commitish: ${{ steps.inspect_workflow_dispatch.outputs.new_head_sha || github.sha }}
           fail_on_unmatched_files: true
           files: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release.apk
-          body: ${{ steps.check_tag.outputs.github_release_notes }}
-          tag_name: ${{ steps.check_tag.outputs.version_tag }}
-          name: Release ${{ steps.check_tag.outputs.version }}
-          prerelease: ${{ steps.check_tag.outputs.is_pre_release == 'true' }}
-          make_latest: ${{ steps.check_tag.outputs.is_pre_release == 'false' }}
+          body: ${{ steps.resolve_release.outputs.github_release_notes }}
+          tag_name: ${{ steps.resolve_release.outputs.version_tag }}
+          name: Release ${{ steps.resolve_release.outputs.version }}
+          prerelease: ${{ steps.resolve_release.outputs.is_pre_release == 'true' }}
+          make_latest: ${{ steps.resolve_release.outputs.is_pre_release == 'false' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
