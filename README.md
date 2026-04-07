@@ -61,8 +61,6 @@ The app requires the following permissions to function:
 
 ## Installation
 
-You can download and install the APK from the [GitHub Releases page](https://github.com/mlocati/android-redialer/releases) or you can install it from the Play Store
-
-<a href="https://play.google.com/store/apps/details?id=it.locati.michele.redialer">
-	<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" width="220" />
-</a>
+| GitHub | Play Store |
+|:---:|:---:|
+| [![Get It from GitHub Releases](https://github.com/mlocati/android-redialer/blob/main/input_images/get-it-github-releases.svg?raw=true)](https://github.com/mlocati/android-redialer/releases) | [![Get It from Play Store](https://github.com/mlocati/android-redialer/blob/main/input_images/get-it-google-play.png?raw=true)](https://play.google.com/store/apps/details?id=it.locati.michele.redialer) |
