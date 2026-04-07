@@ -13,6 +13,26 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (<major>.<minor>.<patch>)'
+        required: false
+        type: string
+        default: ''
+      stability:
+        description: 'Release stability (alpha, beta, rc, or stable)'
+        required: false
+        default: 'stable'
+        type: choice
+        options:
+          - alpha (Internal Testing)
+          - beta (Closed Testing)
+          - rc (Closed Testing)
+          - stable (GA)
+      unstableSerial:
+        description: 'Serial number for unstable releases (e.g. 1 for alpha.1, 2 for alpha.2, etc.)'
+        required: false
+        type: number
 
 jobs:
   build:
@@ -27,24 +47,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Inspect Tag and Generate Release Notes
-        id: check_tag
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Inspect version from Workflow Dispatch
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+        id: workflow_dispatch_version
         uses: actions/github-script@v7
         with:
           script: |
-            const TRACK_TEST_INTERNAL = 'internal';
-            const TRACK_TEST_CLOSED = 'beta';
-            const TRACK_TEST_OPEN = 'alpha';
-            const TRACK_PRODUCTION = 'production';
-
-            const fs = require('fs');
             const { execSync } = require('child_process');
+            const versionInput = '${{ github.event.inputs.version }}'.trim();
+            const stabilityInput = '${{ github.event.inputs.stability }}'.trim().replace(/\s.*$/, '').toLowerCase();
+            const unstableSerialInput = '${{ github.event.inputs.unstableSerial }}'.trim();
 
-            const repoUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`;
+            if (!/^\d+\.\d+\.\d+$/.test(versionInput)) {
+              core.setFailed('Invalid version format. Please use <major>.<minor>.<patch> (e.g. 1.2.3)');
+              return;
+            }
+            let newVersion = versionInput;
+            if (stabilityInput !== 'stable') {
+              if (!/^(alpha|beta|rc)$/.test(stabilityInput)) {
+                core.setFailed('Invalid stability value. Please use alpha, beta, rc, or stable.');
+                return;
+              }
+              if (!/^\d+$/.test(unstableSerialInput) || parseInt(unstableSerialInput) <= 0) {
+                core.setFailed('Invalid unstable serial number. Please provide a positive integer (e.g. 1 for alpha.1).');
+                return;
+              }
+              newVersion += `-${stabilityInput}.${unstableSerialInput}`;
+            }
+            execSync('git config user.name "GitHub"');
+            execSync('git config user.email "noreply@github.com"');
+            execSync(`./set-version ${newVersion}`);
+            core.setOutput('push', 'yes');
+            core.setOutput('new_version', newVersion);
+
+      - name: Inspect tag from push
+        if: startsWith(github.ref, 'refs/tags/v') && !steps.workflow_dispatch_version.outputs.new_version
+        id: check_pushed_tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
             const versionTagName = context.ref.replace('refs/tags/', '');
             const versionFromTag = versionTagName.substring(1).toLowerCase();
-
             const buildGradleContents = fs.readFileSync('app/build.gradle.kts', 'utf8');
             const match = buildGradleContents.match(/versionName\s*=\s*"([^"]+)"/);
             if (!match) {
@@ -56,10 +100,32 @@ jobs:
               core.setFailed(`Tag version (${versionFromTag}) does not match build.gradle.kts version (${versionFromGradle})`);
               return;
             }
-            core.setOutput('version_tag_name', versionTagName);
             core.setOutput('version_from_tag', versionFromTag);
 
-            const preReleaseMatch = versionFromTag.match(/-(alpha|beta|rc)\.\d+$/);
+      - name: Generate Release Notes
+        id: check_tag
+        if: steps.workflow_dispatch_version.outputs.new_version || steps.check_pushed_tag.outputs.version_from_tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const TRACK_TEST_INTERNAL = 'internal';
+            const TRACK_TEST_CLOSED = 'alpha';
+            const TRACK_TEST_OPEN = 'beta';
+            const TRACK_PRODUCTION = 'production';
+
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+
+            const versionFromDispatch = '${{ steps.workflow_dispatch_version.outputs.new_version }}'.trim();
+            const versionFromTag = '${{ steps.check_pushed_tag.outputs.version_from_tag }}'.trim();
+            const version = versionFromDispatch || versionFromTag;
+            core.setOutput('version', version);
+            const versionTagName = `v${version}`;
+            core.setOutput('version_tag', versionTagName);
+
+            const repoUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`;
+            
+            const preReleaseMatch = version.match(/-(alpha|beta|rc)\.\d+$/);
             const preReleaseType = preReleaseMatch ? preReleaseMatch[1] : null;
             const isPreRelease = preReleaseType !== null;
             const playStoreTrackMap = {
@@ -143,7 +209,7 @@ jobs:
         id: decode_keystore
         run: |
           if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            if [ -z "${{ steps.check_tag.outputs.version_tag_name }}" ]; then
+            if [ -z "${{ steps.check_tag.outputs.version }}" ]; then
               echo "No keystore provided, skipping signing setup for non-release build."
             else
               echo "Error: No keystore provided for release build. Please set the KEYSTORE_BASE64 secret."
@@ -166,6 +232,10 @@ jobs:
       - name: List build outputs
         run: find app/build/outputs -name '*.aab' -o -name '*.apk' | sort
 
+      - name: Push new version commit
+        if: steps.workflow_dispatch_version.outputs.push == 'yes'
+        run: git push && git push --tags
+
       - name: Upload APKs
         uses: actions/upload-artifact@v6
         with:
@@ -176,7 +246,7 @@ jobs:
             app/build/outputs/apk/release/app-release.apk
 
       - name: Publish to Play Store (${{ steps.check_tag.outputs.play_store_track }})
-        if: steps.check_tag.outputs.version_tag_name
+        if: steps.check_tag.outputs.version
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
@@ -187,7 +257,7 @@ jobs:
           whatsNewDirectory: ${{ steps.check_tag.outputs.whatsnew_dir }}
 
       - name: Create GitHub Release
-        if: steps.check_tag.outputs.version_tag_name
+        if: steps.check_tag.outputs.version
         uses: softprops/action-gh-release@v2
         with:
           fail_on_unmatched_files: true
@@ -195,8 +265,8 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release.apk
           body: ${{ steps.check_tag.outputs.github_release_notes }}
-          tag_name: ${{ steps.check_tag.outputs.version_tag_name }}
-          name: Release ${{ steps.check_tag.outputs.version_from_tag }}
+          tag_name: ${{ steps.check_tag.outputs.version_tag }}
+          name: Release ${{ steps.check_tag.outputs.version }}
           prerelease: ${{ steps.check_tag.outputs.is_pre_release == 'true' }}
           make_latest: ${{ steps.check_tag.outputs.is_pre_release == 'false' }}
         env:
