@@ -14,7 +14,11 @@ An Android application designed to automatically redial phone numbers that are f
 - **Multilingual Support**: Available in English, Italian, and French.
 - **Clean UI**: Developed using Jetpack Compose with Material 3.
 
-## Getting Started
+## Screenshots
+
+| Phone (idle) | Phone (calling) | Tablet (idle) | Tablet (calling) |
+|:---:|:---:|:---:|:---:|
+| [![Phone (idle)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-phone-1.png?raw=true)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-phone-1.png) | [![Phone (calling)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-phone-2.png?raw=true)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-phone-2.png) | [![Tablet (idle)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-tablet7-1.png?raw=true)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-tablet7-1.png) | [![Tablet (calling)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-tablet7-2.png?raw=true)](https://github.com/mlocati/android-redialer/blob/main/input_images/screenshot-tablet7-2.png) |
 
 ### Prerequisites
 
