@@ -246,7 +246,7 @@ jobs:
 
       - name: Push new version commit
         if: steps.inspect_workflow_dispatch.outputs.push == 'yes'
-        run: git push && git push --tags
+        run: git push
 
       - name: Publish to Play Store (${{ steps.resolve_release.outputs.play_store_track }})
         if: steps.resolve_release.outputs.version
