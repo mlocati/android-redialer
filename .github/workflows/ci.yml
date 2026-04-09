@@ -140,12 +140,18 @@ jobs:
             core.setOutput('is_pre_release', isPreRelease ? 'true' : 'false');
             core.setOutput('play_store_track', playStoreTrack);
 
-            let prevTag;
-            try {
-              prevTag = execSync(`git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' --match 'v[0-9]*.[0-9]*.[0-9]*' HEAD^`).toString().trim();
-            } catch {
-              prevTag = '';
-            }
+            const tagFilter = preReleaseType
+              ? new RegExp(`^v?\\d+\\.\\d+\\.\\d+-${preReleaseType}\\.\\d+$`)
+              : new RegExp(`^v?\\d+\\.\\d+\\.\\d+$`)
+            ;
+            const previousTags = execSync('git tag --sort=-version:refname --merged HEAD^')
+              .toString()
+              .trim()
+              .replace(/\r/g, '\n')
+              .split('\n')
+              .filter(tag => tagFilter.test(tag))
+            ;
+            let prevTag = previousTags.length > 0 ? previousTags[0] : '';
             if (prevTag === versionTagName) {
               prevTag = '';
             }
