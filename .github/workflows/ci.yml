@@ -246,7 +246,7 @@ jobs:
 
       - name: Push new version commit
         if: steps.inspect_workflow_dispatch.outputs.push == 'yes'
-        run: git push
+        run: git push && git push --tags
 
       - name: Publish to Play Store (${{ steps.resolve_release.outputs.play_store_track }})
         if: steps.resolve_release.outputs.version
@@ -273,5 +273,14 @@ jobs:
           name: Release ${{ steps.resolve_release.outputs.version }}
           prerelease: ${{ steps.resolve_release.outputs.is_pre_release == 'true' }}
           make_latest: ${{ steps.resolve_release.outputs.is_pre_release == 'false' }}
+          # see https://github.com/softprops/action-gh-release/commit/b959f31e968fb47fb7bb823087fc092d5613e0a4
+          draft: ${{ steps.resolve_release.outputs.is_pre_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # see https://github.com/softprops/action-gh-release/commit/b959f31e968fb47fb7bb823087fc092d5613e0a4
+      - name: Finalize release
+        if: steps.resolve_release.outputs.version && steps.resolve_release.outputs.is_pre_release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit ${{ steps.resolve_release.outputs.version_tag }} --draft=false
